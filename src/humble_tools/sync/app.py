@@ -10,7 +10,7 @@ from textual.containers import Container
 from textual.message import Message
 from textual.widgets import Footer, Header, Label, ListItem, ListView, Static
 
-from humble_tools.core.download_manager import EpubManager
+from humble_tools.core.download_manager import DownloadManager
 from humble_tools.core.humble_wrapper import HumbleCLIError, get_bundles
 from humble_tools.core.tracker import DownloadTracker
 
@@ -88,7 +88,7 @@ class BundleListScreen(Container):
         Binding("q", "quit_app", "Quit", show=True),
     ]
 
-    def __init__(self, epub_manager: EpubManager):
+    def __init__(self, epub_manager: DownloadManager):
         super().__init__()
         self.epub_manager = epub_manager
         self.bundles = []
@@ -175,7 +175,7 @@ class BundleDetailsScreen(Container):
         Binding("q", "quit_app", "Quit", show=True),
     ]
 
-    def __init__(self, epub_manager: EpubManager, output_dir: Path):
+    def __init__(self, epub_manager: DownloadManager, output_dir: Path):
         super().__init__()
         self.epub_manager = epub_manager
         self.output_dir = output_dir
@@ -421,7 +421,7 @@ class HumbleBundleTUI(App):
     def __init__(self, output_dir: Optional[Path] = None):
         super().__init__()
         self.tracker = DownloadTracker()
-        self.epub_manager = EpubManager(self.tracker)
+        self.epub_manager = DownloadManager(self.tracker)
         self.output_dir = output_dir or (Path.home() / "Downloads" / "HumbleBundle")
 
         # Screens

@@ -5,8 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from humble_tools.core.download_manager import EpubManager, _create_file_id
-from humble_tools.core.humble_wrapper import HumbleCLIError
+from humble_tools.core.download_manager import DownloadManager, _create_file_id
 
 
 @pytest.fixture
@@ -17,8 +16,8 @@ def mock_tracker():
 
 @pytest.fixture
 def epub_manager(mock_tracker):
-    """Create an EpubManager with a mock tracker."""
-    return EpubManager(tracker=mock_tracker)
+    """Create a DownloadManager with a mock tracker."""
+    return DownloadManager(tracker=mock_tracker)
 
 
 class TestCreateFileId:
@@ -45,8 +44,8 @@ class TestCreateFileId:
         assert file_id == expected
 
 
-class TestEpubManagerInit:
-    """Tests for EpubManager initialization."""
+class TestDownloadManagerInit:
+    """Tests for DownloadManager initialization."""
 
     @pytest.mark.parametrize(
         "tracker_arg,should_create",
@@ -57,7 +56,7 @@ class TestEpubManagerInit:
     )
     def test_init(self, tracker_arg, should_create):
         """Test initialization with and without tracker."""
-        manager = EpubManager(tracker=tracker_arg)
+        manager = DownloadManager(tracker=tracker_arg)
         if should_create:
             assert manager.tracker is not None
         else:
@@ -65,11 +64,11 @@ class TestEpubManagerInit:
 
     def test_init_without_args(self):
         """Test initialization without any args creates default tracker."""
-        manager = EpubManager()
+        manager = DownloadManager()
         assert manager.tracker is not None
 
 
-class TestEpubManagerGetBundleItems:
+class TestDownloadManagerGetBundleItems:
     """Tests for get_bundle_items method."""
 
     @patch("humble_tools.core.download_manager.get_bundle_details")
@@ -109,7 +108,7 @@ class TestEpubManagerGetBundleItems:
             False,  # bundle_2_pdf
         ]
 
-        manager = EpubManager(tracker=mock_tracker)
+        manager = DownloadManager(tracker=mock_tracker)
         result = manager.get_bundle_items("bundle")
 
         # Check that format_status was added
@@ -138,7 +137,7 @@ class TestEpubManagerGetBundleItems:
             "keys": [],
         }
 
-        manager = EpubManager(tracker=Mock())
+        manager = DownloadManager(tracker=Mock())
         result = manager.get_bundle_items("bundle")
 
         assert result["items"] == []
@@ -165,14 +164,14 @@ class TestEpubManagerGetBundleItems:
         mock_tracker = Mock()
         mock_tracker.is_downloaded.return_value = False
 
-        manager = EpubManager(tracker=mock_tracker)
+        manager = DownloadManager(tracker=mock_tracker)
         manager.get_bundle_items("test_bundle_key")
 
         # Verify is_downloaded was called with correct file_id
         mock_tracker.is_downloaded.assert_called_once_with("test_bundle_key_5_epub")
 
 
-class TestEpubManagerDownloadItem:
+class TestDownloadManagerDownloadItem:
     """Tests for download_item method."""
 
     @pytest.mark.parametrize(
@@ -244,7 +243,7 @@ class TestEpubManagerDownloadItem:
         assert call_args[1]["filename"] == "item_1.epub"
 
 
-class TestEpubManagerGetBundleStats:
+class TestDownloadManagerGetBundleStats:
     """Tests for get_bundle_stats method."""
 
     def test_get_bundle_stats_calls_tracker(self):
@@ -256,7 +255,7 @@ class TestEpubManagerGetBundleStats:
             "total": 3,
         }
 
-        manager = EpubManager(tracker=mock_tracker)
+        manager = DownloadManager(tracker=mock_tracker)
         stats = manager.get_bundle_stats("bundle123")
 
         # Verify tracker was called with bundle_key only
@@ -265,79 +264,3 @@ class TestEpubManagerGetBundleStats:
         assert stats["total"] == 3
         assert stats["downloaded"] == 2
         assert stats["remaining"] == 1
-
-
-class TestEpubManagerFindEpubBundles:
-    """Tests for find_epub_bundles method."""
-
-    @pytest.mark.parametrize(
-        "details,epub_count",
-        [
-            ("Bundle with item.epub and other.epub files", 2),
-            ("Bundle with no ebook formats", 0),
-            ("Bundle has one book.epub file", 1),
-            ("Book1.epub, Book2.epub, and Book3.epub files", 3),
-        ],
-    )
-    @patch("humble_tools.core.download_manager.get_bundles")
-    @patch("humble_tools.core.download_manager.get_bundle_details")
-    def test_find_epub_bundles_counts_epubs(
-        self, mock_details, mock_bundles, details, epub_count
-    ):
-        """Test that epub_count is calculated correctly."""
-        mock_bundles.return_value = [{"key": "bundle1", "name": "Bundle 1"}]
-        mock_details.return_value = details
-
-        manager = EpubManager()
-        result = manager.find_epub_bundles()
-
-        if epub_count > 0:
-            assert len(result) == 1
-            assert result[0]["epub_count"] == epub_count
-        else:
-            assert len(result) == 0
-
-    @pytest.mark.parametrize(
-        "details",
-        [
-            "Has .EPUB file",
-            "Has .epub file",
-            "Has .Epub file",
-        ],
-    )
-    @patch("humble_tools.core.download_manager.get_bundles")
-    @patch("humble_tools.core.download_manager.get_bundle_details")
-    def test_find_epub_bundles_case_insensitive(
-        self, mock_details, mock_bundles, details
-    ):
-        """Test that EPUB detection is case-insensitive."""
-        mock_bundles.return_value = [{"key": "b1", "name": "Bundle 1"}]
-        mock_details.return_value = details
-
-        manager = EpubManager()
-        result = manager.find_epub_bundles()
-
-        # Should be found
-        assert len(result) == 1
-
-    @patch("humble_tools.core.download_manager.get_bundles")
-    @patch("humble_tools.core.download_manager.get_bundle_details")
-    def test_find_epub_bundles_handles_errors(self, mock_details, mock_bundles):
-        """Test that bundles with errors are skipped."""
-
-        mock_bundles.return_value = [
-            {"key": "good", "name": "Good Bundle"},
-            {"key": "bad", "name": "Bad Bundle"},
-            {"key": "good2", "name": "Good Bundle 2"},
-        ]
-
-        # Second bundle throws error
-        mock_details.side_effect = ["Has .epub", HumbleCLIError("Failed"), "Has .epub"]
-
-        manager = EpubManager()
-        result = manager.find_epub_bundles()
-
-        # Should return 2 bundles (skipping the bad one)
-        assert len(result) == 2
-        assert result[0]["key"] == "good"
-        assert result[1]["key"] == "good2"

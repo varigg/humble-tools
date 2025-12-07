@@ -15,7 +15,7 @@ from humble_tools.core.display import (
     print_info,
     print_success,
 )
-from humble_tools.core.download_manager import EpubManager
+from humble_tools.core.download_manager import DownloadManager
 from humble_tools.core.humble_wrapper import (
     HumbleCLIError,
     check_humble_cli,
@@ -58,7 +58,7 @@ def _ensure_initialized(ctx) -> None:
             print_info("Install from: https://github.com/tuxuser/humble-cli")
             sys.exit(1)
         ctx.obj["tracker"] = DownloadTracker()
-        ctx.obj["epub_manager"] = EpubManager(ctx.obj["tracker"])
+        ctx.obj["epub_manager"] = DownloadManager(ctx.obj["tracker"])
 
 
 @main.command()
