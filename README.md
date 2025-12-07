@@ -369,15 +369,17 @@ The project uses `uv` for dependency management and development:
 
 ```bash
 # Clone the repository
-git clone <repo-url>
-cd humblebundle
+git clone https://github.com/varigg/humble-tools
+cd humble-tools
 
 # Install dependencies
 uv sync
 
 # Run tests
-uv run python test_keys_parsing.py
-uv run python test_mixed_bundle.py
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=src/humble_tools
 
 # Install in development mode
 uv pip install -e .
@@ -400,7 +402,7 @@ The project uses `uv` for dependency management:
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/varigg/humble-tools
 cd humble-tools
 
 # Install dependencies
@@ -408,6 +410,12 @@ uv sync
 
 # Run tests
 uv run pytest
+
+# Run linting
+uv run ruff check .
+
+# Format code
+uv run ruff format .
 
 # Install in development mode
 uv pip install -e .
