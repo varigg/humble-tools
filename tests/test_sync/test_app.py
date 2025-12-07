@@ -239,9 +239,7 @@ class TestHumbleBundleTUI:
     @patch("humble_tools.sync.app.get_bundles")
     async def test_tui_loads_bundles_on_start(self, mock_get_bundles):
         """Test TUI loads bundles when started."""
-        mock_get_bundles.return_value = [
-            {"key": "test_key", "name": "Test Bundle"}
-        ]
+        mock_get_bundles.return_value = [{"key": "test_key", "name": "Test Bundle"}]
 
         app = HumbleBundleTUI()
 
@@ -293,9 +291,7 @@ class TestHumbleBundleTUI:
     @patch("humble_tools.sync.app.get_bundles")
     async def test_tui_shows_bundle_details_on_selection(self, mock_get_bundles):
         """Test selecting a bundle shows details screen."""
-        mock_get_bundles.return_value = [
-            {"key": "test_key", "name": "Test Bundle"}
-        ]
+        mock_get_bundles.return_value = [{"key": "test_key", "name": "Test Bundle"}]
 
         app = HumbleBundleTUI()
 
@@ -338,9 +334,7 @@ class TestHumbleBundleTUI:
     @patch("humble_tools.sync.app.get_bundles")
     async def test_tui_can_go_back_from_details(self, mock_get_bundles):
         """Test pressing escape goes back to bundle list."""
-        mock_get_bundles.return_value = [
-            {"key": "test_key", "name": "Test Bundle"}
-        ]
+        mock_get_bundles.return_value = [{"key": "test_key", "name": "Test Bundle"}]
 
         app = HumbleBundleTUI()
 
