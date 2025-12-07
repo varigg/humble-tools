@@ -217,12 +217,18 @@ class TestHumbleBundleTUI:
 
         assert app.output_dir == custom_dir
 
-    async def test_tui_app_starts(self):
+    @patch("humble_tools.sync.app.get_bundles")
+    async def test_tui_app_starts(self, mock_get_bundles):
         """Test TUI app can start and exit."""
+        mock_get_bundles.return_value = []
+
         app = HumbleBundleTUI()
 
         # Use run_test to simulate app startup
         async with app.run_test() as pilot:
+            # Wait for initial load
+            await pilot.pause()
+
             # App should start successfully
             assert app.is_running
 
