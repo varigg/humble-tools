@@ -46,17 +46,40 @@ class ItemFormatRow(ListItem):
         self.item_size = item_size
         self.format_status = format_status
         self.selected_format = selected_format or (formats[0] if formats else None)
+        self.format_downloading: Dict[
+            str, bool
+        ] = {}  # Track which formats are downloading
 
     def compose(self) -> ComposeResult:
         # Build format string with download indicators
         format_parts = []
         for fmt in self.formats:
-            indicator = "✓" if self.format_status.get(fmt, False) else " "
+            # Check download status: downloading > downloaded > not downloaded
+            if self.format_downloading.get(fmt, False):
+                indicator = "⏳"  # Downloading
+                indicator_color = "yellow"
+            elif self.format_status.get(fmt, False):
+                indicator = "✓"  # Downloaded
+                indicator_color = "green"
+            else:
+                indicator = " "  # Not downloaded
+                indicator_color = None
+
             # Highlight selected format
             if fmt == self.selected_format:
-                format_parts.append(f"[bold cyan][{indicator}] {fmt}[/bold cyan]")
+                if indicator_color:
+                    format_parts.append(
+                        f"[bold cyan {indicator_color}][{indicator}] {fmt}[/bold cyan {indicator_color}]"
+                    )
+                else:
+                    format_parts.append(f"[bold cyan][{indicator}] {fmt}[/bold cyan]")
             else:
-                format_parts.append(f"[{indicator}] {fmt}")
+                if indicator_color:
+                    format_parts.append(
+                        f"[{indicator_color}][{indicator}] {fmt}[/{indicator_color}]"
+                    )
+                else:
+                    format_parts.append(f"[{indicator}] {fmt}")
 
         formats_str = " | ".join(format_parts)
 
@@ -182,10 +205,58 @@ class BundleDetailsScreen(Container):
         self.bundle_key = ""
         self.bundle_name = ""
         self.bundle_data = None
+        self.active_downloads = 0  # Track number of active downloads
+        self.max_concurrent_downloads = 3  # Configurable limit (default 3)
+
+    def update_download_counter(self) -> None:
+        """Update status bar with active download count."""
+        status = self.query_one("#details-status", Static)
+        queue_info = (
+            f"Active Downloads: {self.active_downloads}/{self.max_concurrent_downloads}"
+        )
+
+        if self.bundle_data and self.bundle_data["items"]:
+            items_info = f"{len(self.bundle_data['items'])} items"
+            nav_info = "Use ↑↓ to navigate, ←→ to change format, Enter to download, ESC to go back"
+            status.update(f"{items_info} | {queue_info} | {nav_info}")
+        else:
+            status.update(queue_info)
+
+    def show_notification(self, message: str, duration: int = 5) -> None:
+        """Show a notification that auto-clears after duration."""
+        try:
+            notif = self.query_one("#notification-area", Static)
+            notif.update(message)
+            # Schedule clearing after duration
+            self.call_later(self.clear_notification, delay=duration)
+        except Exception:
+            # If notification widget doesn't exist, skip
+            pass
+
+    def clear_notification(self) -> None:
+        """Clear the notification area."""
+        try:
+            notif = self.query_one("#notification-area", Static)
+            notif.update("")
+        except Exception:
+            # If notification widget doesn't exist, skip
+            pass
+
+    def maybe_remove_item(self, item_row: ItemFormatRow) -> None:
+        """Remove item from view if all formats are downloaded."""
+        # Only remove if ALL formats for this item are downloaded
+        if all(item_row.format_status.values()):
+            try:
+                list_view = self.query_one("#items-list", ListView)
+                list_view.remove(item_row)
+            except Exception:
+                # Item already removed or view changed
+                pass
 
     def compose(self) -> ComposeResult:
         yield Static("", classes="header-text", id="bundle-header")
         yield Static("", id="bundle-metadata")
+        yield Static("", id="notification-area", classes="notification")
         yield Static("Loading...", id="details-status")
         yield ListView(id="items-list")
 
@@ -282,11 +353,7 @@ class BundleDetailsScreen(Container):
             list_view.focus()
 
             # Update status
-            status = self.query_one("#details-status", Static)
-            status.update(
-                f"{len(self.bundle_data['items'])} items. "
-                "Use ↑↓ to navigate, ←→ to change format, Enter to download, ESC to go back."
-            )
+            self.update_download_counter()
 
         except HumbleCLIError as e:
             status = self.query_one("#details-status", Static)
@@ -330,14 +397,16 @@ class BundleDetailsScreen(Container):
         # Download in background
         self.download_format(selected)
 
-    @work(exclusive=True)
+    @work
     async def download_format(self, item_row: ItemFormatRow) -> None:
         """Download the selected format."""
-        # Update status to show download started
-        status = self.query_one("#details-status", Static)
-        status.update(
-            f"[yellow]⧗ Downloading item #{item_row.item_number} ({item_row.selected_format})...[/yellow]"
-        )
+        # Increment counter and show downloading status
+        self.active_downloads += 1
+        item_row.format_downloading[item_row.selected_format] = True
+        # Refresh display to show ⏳ indicator
+        item_row.remove_children()
+        item_row.mount(*item_row.compose())
+        self.update_download_counter()
 
         try:
             success = self.epub_manager.download_item(
@@ -348,25 +417,44 @@ class BundleDetailsScreen(Container):
             )
 
             if success:
-                # Update download status
+                # Update download status and clear downloading indicator
                 item_row.format_status[item_row.selected_format] = True
-                # Refresh display
+                item_row.format_downloading[item_row.selected_format] = False
+                # Refresh display to show ✓ instead of ⏳
                 item_row.remove_children()
                 item_row.mount(*item_row.compose())
 
-                # Update status
-                status = self.query_one("#details-status", Static)
-                status.update(
-                    f"[green]✓ Downloaded item #{item_row.item_number} ({item_row.selected_format})[/green]"
+                # Show notification
+                self.show_notification(
+                    f"[green]✓ Downloaded: {item_row.item_name} ({item_row.selected_format})[/green]",
+                    duration=5,
                 )
+
+                # Schedule item removal if all formats downloaded
+                self.call_later(self.maybe_remove_item, item_row, delay=10)
             else:
-                status = self.query_one("#details-status", Static)
-                status.update(
-                    f"[red]Failed to download item #{item_row.item_number}[/red]"
+                # Clear downloading indicator on failure
+                item_row.format_downloading[item_row.selected_format] = False
+                item_row.remove_children()
+                item_row.mount(*item_row.compose())
+
+                # Show error notification
+                self.show_notification(
+                    f"[red]✗ Failed: {item_row.item_name} ({item_row.selected_format})[/red]",
+                    duration=5,
                 )
         except Exception as e:
-            status = self.query_one("#details-status", Static)
-            status.update(f"[red]Error: {e}[/red]")
+            # Clear downloading indicator on error
+            item_row.format_downloading[item_row.selected_format] = False
+            item_row.remove_children()
+            item_row.mount(*item_row.compose())
+
+            # Show error notification
+            self.show_notification(f"[red]Error: {e}[/red]", duration=5)
+        finally:
+            # Always decrement counter
+            self.active_downloads -= 1
+            self.update_download_counter()
 
     def action_quit_app(self) -> None:
         """Quit the application."""
@@ -398,6 +486,13 @@ class HumbleBundleTUI(App):
     #status-text, #details-status, #bundle-metadata {
         padding: 0 1;
         color: $text-muted;
+    }
+    
+    .notification {
+        padding: 0 1;
+        color: $text;
+        height: 1;
+        border: solid $accent;
     }
     
     ListView {
