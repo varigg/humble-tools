@@ -1,5 +1,7 @@
 """Textual-based TUI for Humble Bundle EPUB Manager."""
 
+import asyncio
+import threading
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -49,13 +51,19 @@ class ItemFormatRow(ListItem):
         self.format_downloading: Dict[
             str, bool
         ] = {}  # Track which formats are downloading
+        self.format_queued: Dict[
+            str, bool
+        ] = {}  # Track which formats are queued
 
     def compose(self) -> ComposeResult:
         # Build format string with download indicators
         format_parts = []
         for fmt in self.formats:
-            # Check download status: downloading > downloaded > not downloaded
-            if self.format_downloading.get(fmt, False):
+            # Check download status: queued > downloading > downloaded > not downloaded
+            if self.format_queued.get(fmt, False):
+                indicator = "🕒"  # Queued
+                indicator_color = "blue"
+            elif self.format_downloading.get(fmt, False):
                 indicator = "⏳"  # Downloading
                 indicator_color = "yellow"
             elif self.format_status.get(fmt, False):
@@ -131,10 +139,11 @@ class BundleListScreen(Container):
     async def load_bundles(self) -> None:
         """Load bundles in background."""
         try:
-            # Get all bundles (fast, no details)
-            self.bundles = get_bundles()
-
-            # Update UI
+            # Get all bundles (fast, no details) - this is I/O, safe to run in worker
+            bundles = get_bundles()
+            
+            # Update UI - safe in async worker on event loop
+            self.bundles = bundles
             list_view = self.query_one("#bundle-list", ListView)
             list_view.clear()
 
@@ -206,14 +215,26 @@ class BundleDetailsScreen(Container):
         self.bundle_name = ""
         self.bundle_data = None
         self.active_downloads = 0  # Track number of active downloads
+        self.queued_downloads = 0  # Track number of queued downloads
         self.max_concurrent_downloads = 3  # Configurable limit (default 3)
+        self._download_semaphore = threading.Semaphore(self.max_concurrent_downloads)
 
     def update_download_counter(self) -> None:
         """Update status bar with active download count."""
-        status = self.query_one("#details-status", Static)
-        queue_info = (
-            f"Active Downloads: {self.active_downloads}/{self.max_concurrent_downloads}"
-        )
+        try:
+            status = self.query_one("#details-status", Static)
+        except Exception:
+            # Status widget might not exist yet
+            return
+            
+        if self.queued_downloads > 0:
+            queue_info = (
+                f"Active: {self.active_downloads}/{self.max_concurrent_downloads} | Queued: {self.queued_downloads}"
+            )
+        else:
+            queue_info = (
+                f"Active Downloads: {self.active_downloads}/{self.max_concurrent_downloads}"
+            )
 
         if self.bundle_data and self.bundle_data["items"]:
             items_info = f"{len(self.bundle_data['items'])} items"
@@ -228,7 +249,7 @@ class BundleDetailsScreen(Container):
             notif = self.query_one("#notification-area", Static)
             notif.update(message)
             # Schedule clearing after duration using set_timer
-            self.set_timer(lambda: self.clear_notification(), duration, repeat=False)
+            self.set_timer(duration, lambda: self.clear_notification())
         except Exception:
             # If notification widget doesn't exist, skip
             pass
@@ -248,7 +269,7 @@ class BundleDetailsScreen(Container):
         if all(item_row.format_status.values()):
             try:
                 list_view = self.query_one("#items-list", ListView)
-                list_view.remove(item_row)
+                item_row.remove()
             except Exception:
                 # Item already removed or view changed
                 pass
@@ -280,9 +301,12 @@ class BundleDetailsScreen(Container):
     async def load_details(self) -> None:
         """Load bundle details in background."""
         try:
-            # Get parsed bundle data with download status
-            self.bundle_data = self.epub_manager.get_bundle_items(self.bundle_key)
-
+            # Get parsed bundle data with download status - this is I/O, safe to run in worker
+            bundle_data = self.epub_manager.get_bundle_items(self.bundle_key)
+            
+            # Update UI - safe in async worker on event loop
+            self.bundle_data = bundle_data
+            
             # Update metadata
             metadata = self.query_one("#bundle-metadata", Static)
             meta_text = (
@@ -385,80 +409,120 @@ class BundleDetailsScreen(Container):
         self.download_format(selected)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
-        """Handle ListView selection (Enter key)."""
-        list_view = self.query_one("#items-list", ListView)
-        if list_view.index is None or list_view.index == 0:  # Skip header row
-            return
+        """Handle ListView selection (Enter key) - delegate to bundle list if needed."""
+        # Check if this is from the items list
+        try:
+            list_view = self.query_one("#items-list", ListView)
+            if event.list_view == list_view:
+                # This is from our items list
+                if list_view.index is None or list_view.index == 0:  # Skip header row
+                    return
 
-        selected = list_view.children[list_view.index]
-        if not isinstance(selected, ItemFormatRow):
-            return
+                selected = list_view.children[list_view.index]
+                if not isinstance(selected, ItemFormatRow):
+                    return
 
-        # Download in background
-        self.download_format(selected)
+                # Download in background
+                self.download_format(selected)
+        except Exception:
+            # Not our list view, ignore
+            pass
 
-    @work
+    @work(thread=True)
     async def download_format(self, item_row: ItemFormatRow) -> None:
         """Download the selected format."""
-        # Increment counter and show downloading status
-        self.active_downloads += 1
-        item_row.format_downloading[item_row.selected_format] = True
-        # Refresh display to show ⏳ indicator
-        item_row.remove_children()
-        item_row.mount(*item_row.compose())
-        self.update_download_counter()
-
-        try:
-            success = self.epub_manager.download_item(
-                bundle_key=self.bundle_key,
-                item_number=item_row.item_number,
-                format_name=item_row.selected_format,
-                output_dir=self.output_dir,
-            )
-
-            if success:
-                # Update download status and clear downloading indicator
-                item_row.format_status[item_row.selected_format] = True
-                item_row.format_downloading[item_row.selected_format] = False
-                # Refresh display to show ✓ instead of ⏳
-                item_row.remove_children()
-                item_row.mount(*item_row.compose())
-
-                # Show notification
-                self.show_notification(
-                    f"[green]✓ Downloaded: {item_row.item_name} ({item_row.selected_format})[/green]",
-                    duration=5,
-                )
-
-                # Schedule item removal if all formats downloaded
-                self.set_timer(
-                    lambda: self.maybe_remove_item(item_row),
-                    delay=10,
-                    repeat=False,
-                )
-            else:
-                # Clear downloading indicator on failure
-                item_row.format_downloading[item_row.selected_format] = False
-                item_row.remove_children()
-                item_row.mount(*item_row.compose())
-
-                # Show error notification
-                self.show_notification(
-                    f"[red]✗ Failed: {item_row.item_name} ({item_row.selected_format})[/red]",
-                    duration=5,
-                )
-        except Exception as e:
-            # Clear downloading indicator on error
-            item_row.format_downloading[item_row.selected_format] = False
+        selected_format = item_row.selected_format
+        
+        # Early return if no format selected
+        if selected_format is None:
+            return
+        
+        # Check if already downloading or downloaded
+        if item_row.format_downloading.get(selected_format, False):
+            return  # Already downloading
+        if item_row.format_queued.get(selected_format, False):
+            return  # Already queued
+        if item_row.format_status.get(selected_format, False):
+            return  # Already downloaded
+        
+        # Show queued state - use call_from_thread since we're in a worker thread
+        def mark_queued():
+            self.queued_downloads += 1
+            item_row.format_queued[selected_format] = True
             item_row.remove_children()
             item_row.mount(*item_row.compose())
-
-            # Show error notification
-            self.show_notification(f"[red]Error: {e}[/red]", duration=5)
-        finally:
-            # Always decrement counter
-            self.active_downloads -= 1
             self.update_download_counter()
+        
+        self.app.call_from_thread(mark_queued)
+        
+        # Acquire semaphore to enforce concurrency limit (blocks until available)
+        self._download_semaphore.acquire()
+        try:
+            # Now move from queued to downloading
+            def start_downloading():
+                self.queued_downloads -= 1
+                self.active_downloads += 1
+                item_row.format_queued[selected_format] = False
+                item_row.format_downloading[selected_format] = True
+                item_row.remove_children()
+                item_row.mount(*item_row.compose())
+                self.update_download_counter()
+            
+            self.app.call_from_thread(start_downloading)
+
+            # Perform download - blocking I/O is OK in thread worker
+            success = self.epub_manager.download_item(
+                    bundle_key=self.bundle_key,
+                    item_number=item_row.item_number,
+                    format_name=selected_format,
+                    output_dir=self.output_dir,
+                )
+
+            if success:
+                # Update UI from thread
+                def on_success():
+                    item_row.format_status[selected_format] = True
+                    item_row.format_downloading[selected_format] = False
+                    item_row.remove_children()
+                    item_row.mount(*item_row.compose())
+                    self.show_notification(
+                        f"[green]✓ Downloaded: {item_row.item_name} ({selected_format})[/green]",
+                        duration=5,
+                    )
+                    # Schedule item removal if all formats downloaded
+                    self.set_timer(10, lambda: self.maybe_remove_item(item_row))
+                
+                self.app.call_from_thread(on_success)
+            else:
+                # Handle failure
+                def on_failure():
+                    item_row.format_downloading[selected_format] = False
+                    item_row.remove_children()
+                    item_row.mount(*item_row.compose())
+                    self.show_notification(
+                        f"[red]✗ Failed: {item_row.item_name} ({selected_format})[/red]",
+                        duration=5,
+                    )
+                
+                self.app.call_from_thread(on_failure)
+                
+        except Exception as e:
+            # Handle exception
+            def on_error():
+                item_row.format_downloading[selected_format] = False
+                item_row.remove_children()
+                item_row.mount(*item_row.compose())
+                self.show_notification(f"[red]Error: {e}[/red]", duration=5)
+            
+            self.app.call_from_thread(on_error)
+        finally:
+            # Always decrement counter and release semaphore
+            def cleanup():
+                self.active_downloads -= 1
+                self.update_download_counter()
+            
+            self.app.call_from_thread(cleanup)
+            self._download_semaphore.release()
 
     def action_quit_app(self) -> None:
         """Quit the application."""
