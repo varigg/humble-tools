@@ -227,8 +227,8 @@ class BundleDetailsScreen(Container):
         try:
             notif = self.query_one("#notification-area", Static)
             notif.update(message)
-            # Schedule clearing after duration
-            self.call_later(self.clear_notification, delay=duration)
+            # Schedule clearing after duration using set_timer
+            self.set_timer(lambda: self.clear_notification(), duration, repeat=False)
         except Exception:
             # If notification widget doesn't exist, skip
             pass
@@ -431,7 +431,11 @@ class BundleDetailsScreen(Container):
                 )
 
                 # Schedule item removal if all formats downloaded
-                self.call_later(self.maybe_remove_item, item_row, delay=10)
+                self.set_timer(
+                    lambda: self.maybe_remove_item(item_row),
+                    delay=10,
+                    repeat=False,
+                )
             else:
                 # Clear downloading indicator on failure
                 item_row.format_downloading[item_row.selected_format] = False
