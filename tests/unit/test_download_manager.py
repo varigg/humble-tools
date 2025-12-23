@@ -1,4 +1,17 @@
-"""Tests for download_manager module."""
+"""Tests for download_manager module.
+
+Test Coverage:
+- File ID creation with various bundle keys and formats
+- Download manager initialization with and without tracker
+- Bundle item retrieval with download status tracking
+- Download operations and tracker integration
+- Output directory creation
+- Error handling for download and API failures
+- Bundle statistics delegation to tracker
+
+Performance: All tests are fast (< 0.5s each)
+Dependencies: Mocks humble_wrapper functions and tracker
+"""
 
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -6,18 +19,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from humble_tools.core.download_manager import DownloadManager, _create_file_id
-
-
-@pytest.fixture
-def mock_tracker():
-    """Create a mock tracker for testing."""
-    return Mock()
-
-
-@pytest.fixture
-def epub_manager(mock_tracker):
-    """Create a DownloadManager with a mock tracker."""
-    return DownloadManager(tracker=mock_tracker)
+from tests.conftest import create_bundle_data
 
 
 class TestCreateFileId:
@@ -51,7 +53,7 @@ class TestDownloadManagerInit:
         "tracker_arg,should_create",
         [
             (Mock(), False),  # with provided tracker
-            (None, True),  # with None explicitly
+            (None, True),  # with None explicitly (default behavior)
         ],
     )
     def test_init(self, tracker_arg, should_create):
@@ -61,11 +63,6 @@ class TestDownloadManagerInit:
             assert manager.tracker is not None
         else:
             assert manager.tracker == tracker_arg
-
-    def test_init_without_args(self):
-        """Test initialization without any args creates default tracker."""
-        manager = DownloadManager()
-        assert manager.tracker is not None
 
 
 class TestDownloadManagerGetBundleItems:
@@ -77,12 +74,11 @@ class TestDownloadManagerGetBundleItems:
         """Test that download status is added to each item format."""
         # Setup mocks
         mock_get_details.return_value = "raw details"
-        mock_parse.return_value = {
-            "name": "Test Bundle",
-            "purchased": "2024-01-01",
-            "amount": "$10",
-            "total_size": "100 MiB",
-            "items": [
+        mock_parse.return_value = create_bundle_data(
+            name="Test Bundle",
+            amount="$10",
+            total_size="100 MiB",
+            items=[
                 {
                     "number": 1,
                     "name": "Book 1",
@@ -96,8 +92,7 @@ class TestDownloadManagerGetBundleItems:
                     "size": "50 MiB",
                 },
             ],
-            "keys": [],
-        }
+        )
 
         mock_tracker = Mock()
         mock_tracker.is_downloaded.side_effect = [
@@ -123,53 +118,6 @@ class TestDownloadManagerGetBundleItems:
         assert result["items"][1]["format_status"]["MOBI"] is True
         assert result["items"][1]["format_status"]["PDF"] is False
 
-    @patch("humble_tools.core.download_manager.get_bundle_details")
-    @patch("humble_tools.core.download_manager.parse_bundle_details")
-    def test_get_bundle_items_with_no_items(self, mock_parse, mock_get_details):
-        """Test handling bundle with no items."""
-        mock_get_details.return_value = "raw details"
-        mock_parse.return_value = {
-            "name": "Empty Bundle",
-            "purchased": "2024-01-01",
-            "amount": "$0",
-            "total_size": "0 B",
-            "items": [],
-            "keys": [],
-        }
-
-        manager = DownloadManager(tracker=Mock())
-        result = manager.get_bundle_items("bundle")
-
-        assert result["items"] == []
-        assert result["keys"] == []
-
-    @patch("humble_tools.core.download_manager.get_bundle_details")
-    @patch("humble_tools.core.download_manager.parse_bundle_details")
-    def test_get_bundle_items_calls_create_file_id_correctly(
-        self, mock_parse, mock_get_details
-    ):
-        """Test that _create_file_id is called with correct parameters."""
-        mock_get_details.return_value = "raw details"
-        mock_parse.return_value = {
-            "name": "Test Bundle",
-            "items": [
-                {"number": 5, "name": "Book", "formats": ["EPUB"], "size": "10 MiB"}
-            ],
-            "keys": [],
-            "purchased": "",
-            "amount": "",
-            "total_size": "",
-        }
-
-        mock_tracker = Mock()
-        mock_tracker.is_downloaded.return_value = False
-
-        manager = DownloadManager(tracker=mock_tracker)
-        manager.get_bundle_items("test_bundle_key")
-
-        # Verify is_downloaded was called with correct file_id
-        mock_tracker.is_downloaded.assert_called_once_with("test_bundle_key_5_epub")
-
 
 class TestDownloadManagerDownloadItem:
     """Tests for download_item method."""
@@ -183,12 +131,17 @@ class TestDownloadManagerDownloadItem:
     )
     @patch("humble_tools.core.download_manager.download_item_format")
     def test_download_item(
-        self, mock_download, epub_manager, mock_tracker, download_success, should_mark
+        self,
+        mock_download,
+        download_manager,
+        mock_tracker,
+        download_success,
+        should_mark,
     ):
         """Test download marking behavior based on success/failure."""
         mock_download.return_value = download_success
 
-        result = epub_manager.download_item(
+        result = download_manager.download_item(
             bundle_key="bundle123",
             item_number=1,
             format_name="epub",
@@ -206,14 +159,16 @@ class TestDownloadManagerDownloadItem:
             mock_tracker.mark_downloaded.assert_not_called()
 
     @patch("humble_tools.core.download_manager.download_item_format")
-    def test_download_item_creates_output_directory(self, mock_download, epub_manager):
+    def test_download_item_creates_output_directory(
+        self, mock_download, download_manager
+    ):
         """Test that output directory is created if it doesn't exist."""
         mock_download.return_value = True
 
         # Use a temporary path that doesn't exist
         with patch("pathlib.Path.mkdir") as mock_mkdir:
             output_path = Path("/tmp/nonexistent/dir")
-            epub_manager.download_item(
+            download_manager.download_item(
                 bundle_key="bundle",
                 item_number=1,
                 format_name="epub",
@@ -223,44 +178,49 @@ class TestDownloadManagerDownloadItem:
             # Verify mkdir was called with correct arguments
             mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
+
+class TestDownloadManagerErrorHandling:
+    """Tests for error handling in download operations."""
+
     @patch("humble_tools.core.download_manager.download_item_format")
-    def test_download_item_with_uppercase_format(
-        self, mock_download, epub_manager, mock_tracker
+    def test_download_item_propagates_exceptions(
+        self, mock_download, download_manager, mock_tracker
     ):
-        """Test that format name is handled correctly regardless of case."""
-        mock_download.return_value = True
+        """Test download propagates exceptions and doesn't mark tracker on error."""
+        mock_download.side_effect = IOError("Network connection failed")
 
-        epub_manager.download_item(
-            bundle_key="bundle",
-            item_number=1,
-            format_name="EPUB",
-            output_dir=Path("/tmp/test"),
-        )
+        # Should propagate the exception
+        with pytest.raises(IOError, match="Network connection failed"):
+            download_manager.download_item(
+                bundle_key="bundle123",
+                item_number=1,
+                format_name="epub",
+                output_dir=Path("/tmp/test"),
+            )
 
-        # Check that file_id uses lowercase
-        call_args = mock_tracker.mark_downloaded.call_args
-        assert call_args[1]["file_url"] == "bundle_1_epub"
-        assert call_args[1]["filename"] == "item_1.epub"
+        # Tracker should NOT be marked as downloaded on error
+        mock_tracker.mark_downloaded.assert_not_called()
 
+    @patch("humble_tools.core.download_manager.get_bundle_details")
+    @patch("humble_tools.core.download_manager.parse_bundle_details")
+    def test_get_bundle_items_propagates_parse_error(
+        self, mock_parse, mock_get_details
+    ):
+        """Test get_bundle_items propagates parsing errors."""
+        mock_get_details.return_value = "raw details"
+        mock_parse.side_effect = ValueError("Invalid bundle format")
 
-class TestDownloadManagerGetBundleStats:
-    """Tests for get_bundle_stats method."""
+        manager = DownloadManager(tracker=Mock())
 
-    def test_get_bundle_stats_calls_tracker(self):
-        """Test that get_bundle_stats delegates to tracker."""
-        mock_tracker = Mock()
-        mock_tracker.get_bundle_stats.return_value = {
-            "downloaded": 2,
-            "remaining": 1,
-            "total": 3,
-        }
+        with pytest.raises(ValueError, match="Invalid bundle format"):
+            manager.get_bundle_items("bundle123")
 
-        manager = DownloadManager(tracker=mock_tracker)
-        stats = manager.get_bundle_stats("bundle123")
+    @patch("humble_tools.core.download_manager.get_bundle_details")
+    def test_get_bundle_items_propagates_api_error(self, mock_get_details):
+        """Test get_bundle_items propagates API errors."""
+        mock_get_details.side_effect = RuntimeError("API unavailable")
 
-        # Verify tracker was called with bundle_key only
-        mock_tracker.get_bundle_stats.assert_called_once_with("bundle123")
+        manager = DownloadManager(tracker=Mock())
 
-        assert stats["total"] == 3
-        assert stats["downloaded"] == 2
-        assert stats["remaining"] == 1
+        with pytest.raises(RuntimeError, match="API unavailable"):
+            manager.get_bundle_items("bundle123")

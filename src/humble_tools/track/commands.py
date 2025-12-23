@@ -51,14 +51,14 @@ def main(ctx):
 
 
 def _ensure_initialized(ctx) -> None:
-    """Ensure tracker and epub_manager are initialized in context."""
+    """Ensure tracker and download_manager are initialized in context."""
     if "tracker" not in ctx.obj:
         if not check_humble_cli():
             print_error("humble-cli is not installed or not in PATH")
             print_info("Install from: https://github.com/tuxuser/humble-cli")
             sys.exit(1)
         ctx.obj["tracker"] = DownloadTracker()
-        ctx.obj["epub_manager"] = DownloadManager(ctx.obj["tracker"])
+        ctx.obj["download_manager"] = DownloadManager(ctx.obj["tracker"])
 
 
 @main.command()
@@ -72,7 +72,7 @@ def status(ctx, bundle_key):
     Otherwise, shows summary table of all tracked bundles.
     """
     _ensure_initialized(ctx)
-    epub_manager = ctx.obj["epub_manager"]
+    download_manager = ctx.obj["download_manager"]
     tracker = ctx.obj["tracker"]
 
     if bundle_key:
@@ -82,7 +82,7 @@ def status(ctx, bundle_key):
             (b["name"] for b in bundles if b["key"].startswith(bundle_key)), bundle_key
         )
 
-        stats = epub_manager.get_bundle_stats(bundle_key)
+        stats = download_manager.get_bundle_stats(bundle_key)
         display_bundle_status(bundle_name, stats)
     else:
         # Show summary of all tracked bundles

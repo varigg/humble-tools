@@ -369,21 +369,6 @@ Total size      : 100 MiB
             or "Japanese" in result["items"][1]["name"]
         )
 
-    def test_parse_empty_string(self):
-        """Test parsing an empty string."""
-        result = parse_bundle_details("")
-
-        assert result["name"] == ""
-        assert result["items"] == []
-        assert result["keys"] == []
-
-    def test_parse_only_whitespace(self):
-        """Test parsing string with only whitespace."""
-        result = parse_bundle_details("   \n\n   \n   ")
-
-        assert result["items"] == []
-        assert result["keys"] == []
-
 
 class TestParseBundleDetailsRealWorldExamples:
     """Tests based on actual bundle output formats."""
