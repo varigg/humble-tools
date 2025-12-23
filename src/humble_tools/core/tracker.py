@@ -50,7 +50,7 @@ class DownloadTracker:
                 bundle_key,
                 filename,
                 file_size,
-                datetime.now(),
+                datetime.now().isoformat(),
                 file_path,
                 bundle_total_files,
             ),
