@@ -66,9 +66,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-
 # PyBuilder
 .pybuilder/
 target/
@@ -158,9 +155,6 @@ cython_debug/
 
 # Humble Bundle data
 .humblebundle/
-
-# Development documents
-docs/dev/
 
 # Exploration scripts
 exploration/
