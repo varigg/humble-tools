@@ -21,10 +21,6 @@ class DatabaseConnection(Protocol):
         """Commit transaction."""
         ...
 
-    def cursor(self) -> Any:  # noqa: ANN401
-        """Get cursor for queries."""
-        ...
-
 
 class SQLiteConnection:
     """SQLite database connection wrapper with schema management."""
@@ -73,10 +69,6 @@ class SQLiteConnection:
     def commit(self) -> None:
         """Commit transaction."""
         self._conn.commit()
-
-    def cursor(self) -> sqlite3.Cursor:
-        """Get cursor for queries."""
-        return self._conn.cursor()
 
     def close(self) -> None:
         """Close connection."""

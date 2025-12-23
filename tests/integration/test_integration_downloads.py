@@ -3,6 +3,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from humble_tools.sync.app import HumbleBundleTUI
 
 

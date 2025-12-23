@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from humble_tools.core.exceptions import ValidationError
 from humble_tools.core.validation import validate_output_directory
 

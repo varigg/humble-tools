@@ -1,6 +1,7 @@
 """Unit tests for custom exception classes."""
 
 import pytest
+
 from humble_tools.core.exceptions import (
     APIError,
     DownloadError,

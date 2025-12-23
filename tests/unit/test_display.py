@@ -4,6 +4,7 @@ from io import StringIO
 from unittest.mock import patch
 
 import pytest
+
 from humble_tools.track.display import display_bundle_status
 
 

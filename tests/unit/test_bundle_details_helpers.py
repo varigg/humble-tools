@@ -13,10 +13,11 @@ import threading
 from unittest.mock import Mock, patch
 
 import pytest
-from humble_tools.sync.app import BundleDetailsScreen, ItemFormatRow
-from humble_tools.sync.config import AppConfig
 from textual.css.query import NoMatches
 from textual.widgets import Static
+
+from humble_tools.sync.app import BundleDetailsScreen, ItemFormatRow
+from humble_tools.sync.config import AppConfig
 
 
 class TestSafeQueryWidget:

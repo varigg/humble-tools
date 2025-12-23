@@ -17,8 +17,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from humble_tools.core.download_manager import DownloadManager, _create_file_id
 
+from humble_tools.core.download_manager import DownloadManager, _create_file_id
 from tests.conftest import create_bundle_data
 
 

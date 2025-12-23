@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+
 from humble_tools.sync.app import BundleDetailsScreen
 from humble_tools.sync.config import AppConfig
 

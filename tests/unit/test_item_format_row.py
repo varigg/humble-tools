@@ -14,6 +14,7 @@ Dependencies: Uses ItemFormatRow widget, Colors and StatusSymbols constants
 """
 
 import pytest
+
 from humble_tools.sync.app import ItemFormatRow
 from humble_tools.sync.constants import Colors, StatusSymbols
 

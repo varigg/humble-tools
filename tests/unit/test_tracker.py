@@ -14,6 +14,7 @@ Dependencies: Uses SQLiteConnection and create_default_connection from database 
 """
 
 import pytest
+
 from humble_tools.core.database import SQLiteConnection
 from humble_tools.core.tracker import DownloadTracker
 

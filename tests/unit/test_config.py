@@ -16,6 +16,7 @@ Dependencies: Uses AppConfig dataclass and constants module
 from pathlib import Path
 
 import pytest
+
 from humble_tools.sync.config import AppConfig
 from humble_tools.sync.constants import (
     DEFAULT_MAX_CONCURRENT_DOWNLOADS,

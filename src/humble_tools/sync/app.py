@@ -325,7 +325,7 @@ class BundleDetailsScreen(Container):
         """
         stats = self._queue.get_stats()
         if stats.queued > 0:
-            return f"Active: {stats.active}/{stats.max_concurrent} | " f"Queued: {stats.queued}"
+            return f"Active: {stats.active}/{stats.max_concurrent} | Queued: {stats.queued}"
         else:
             return f"Active Downloads: {stats.active}/{stats.max_concurrent}"
 
