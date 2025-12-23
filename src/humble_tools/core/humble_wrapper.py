@@ -2,7 +2,7 @@
 
 import re
 import subprocess
-from typing import Dict, List
+from typing import Any, Dict, List
 
 
 class HumbleCLIError(Exception):
@@ -54,7 +54,7 @@ def get_bundles() -> List[Dict[str, str]]:
 
         return bundles
     except subprocess.CalledProcessError as e:
-        raise HumbleCLIError(f"Failed to list bundles: {e.stderr}")
+        raise HumbleCLIError(f"Failed to list bundles: {e.stderr}") from e
 
 
 def get_bundle_details(bundle_key: str) -> str:
@@ -78,10 +78,10 @@ def get_bundle_details(bundle_key: str) -> str:
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise HumbleCLIError(f"Failed to get bundle details: {e.stderr}")
+        raise HumbleCLIError(f"Failed to get bundle details: {e.stderr}") from e
 
 
-def _parse_bundle_name(lines: list) -> str:
+def _parse_bundle_name(lines: List[str]) -> str:
     """Extract bundle name from the first non-empty line.
 
     Args:
@@ -95,7 +95,7 @@ def _parse_bundle_name(lines: list) -> str:
     return ""
 
 
-def _parse_metadata_field(lines: list, field_name: str) -> str:
+def _parse_metadata_field(lines: List[str], field_name: str) -> str:
     """Extract a metadata field value from bundle details.
 
     Args:
@@ -113,7 +113,7 @@ def _parse_metadata_field(lines: list, field_name: str) -> str:
     return ""
 
 
-def _parse_items_table(lines: list) -> list:
+def _parse_items_table(lines: List[str]) -> List[Dict[str, Any]]:
     """Parse the items table from bundle details.
 
     Args:
@@ -168,7 +168,7 @@ def _parse_items_table(lines: list) -> list:
     return items
 
 
-def _parse_keys_table(lines: list) -> list:
+def _parse_keys_table(lines: List[str]) -> List[Dict[str, Any]]:
     """Parse the keys table from bundle details.
 
     Args:
@@ -217,14 +217,12 @@ def _parse_keys_table(lines: list) -> list:
             key_name = match.group(2).strip()
             redeemed = match.group(3).strip()
 
-            keys.append(
-                {"number": key_number, "name": key_name, "redeemed": redeemed == "Yes"}
-            )
+            keys.append({"number": key_number, "name": key_name, "redeemed": redeemed == "Yes"})
 
     return keys
 
 
-def parse_bundle_details(details_output: str) -> Dict:
+def parse_bundle_details(details_output: str) -> Dict[str, Any]:
     """Parse bundle details output into structured data.
 
     Args:
@@ -294,4 +292,4 @@ def download_item_format(
     except subprocess.CalledProcessError as e:
         raise HumbleCLIError(
             f"Failed to download item {item_number} ({format_name}): {e.stderr}"
-        )
+        ) from e

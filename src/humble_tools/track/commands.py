@@ -4,13 +4,12 @@ import functools
 import sys
 import traceback
 from pathlib import Path
+from typing import Any, Callable
 
 import click
 
 from humble_tools import __version__
 from humble_tools.core.display import (
-    display_bundle_status,
-    display_tracked_bundles_summary,
     print_error,
     print_info,
     print_success,
@@ -22,13 +21,17 @@ from humble_tools.core.humble_wrapper import (
     get_bundles,
 )
 from humble_tools.core.tracker import DownloadTracker
+from humble_tools.track.display import (
+    display_bundle_status,
+    display_tracked_bundles_summary,
+)
 
 
-def handle_humble_cli_errors(func):
+def handle_humble_cli_errors(func: Callable) -> Callable:
     """Decorator to handle HumbleCLIError consistently."""
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         try:
             return func(*args, **kwargs)
         except HumbleCLIError as e:
@@ -41,7 +44,7 @@ def handle_humble_cli_errors(func):
 @click.group()
 @click.version_option(version=__version__)
 @click.pass_context
-def main(ctx):
+def main(ctx: click.Context) -> None:
     """Humble Bundle EPUB Manager - Interactive TUI and download tracking for your bundles.
 
     Use 'hb-epub tui' to launch the interactive interface.
@@ -50,7 +53,7 @@ def main(ctx):
     ctx.ensure_object(dict)
 
 
-def _ensure_initialized(ctx) -> None:
+def _ensure_initialized(ctx: click.Context) -> None:
     """Ensure tracker and download_manager are initialized in context."""
     if "tracker" not in ctx.obj:
         if not check_humble_cli():
@@ -65,7 +68,7 @@ def _ensure_initialized(ctx) -> None:
 @click.argument("bundle_key", required=False)
 @click.pass_context
 @handle_humble_cli_errors
-def status(ctx, bundle_key):
+def status(ctx: click.Context, bundle_key: str) -> None:
     """Show download progress for bundles.
 
     If BUNDLE_KEY is provided, shows detailed status for that bundle.
@@ -120,7 +123,7 @@ def status(ctx, bundle_key):
 @click.argument("bundle_key")
 @click.argument("filename")
 @click.pass_context
-def mark_downloaded(ctx, file_url, bundle_key, filename):
+def mark_downloaded(ctx: click.Context, file_url: str, bundle_key: str, filename: str) -> None:
     """Manually mark a file as downloaded."""
     _ensure_initialized(ctx)
     tracker = ctx.obj["tracker"]
@@ -136,7 +139,7 @@ def mark_downloaded(ctx, file_url, bundle_key, filename):
     default=None,
     help="Output directory (default: ~/Downloads/HumbleBundle)",
 )
-def tui(output):
+def tui(output: str) -> None:
     """Launch interactive TUI for browsing and downloading bundles."""
     # Check humble-cli first
     if not check_humble_cli():

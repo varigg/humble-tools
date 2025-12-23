@@ -9,7 +9,7 @@ from humble_tools.core.database import DatabaseConnection, create_default_connec
 class DownloadTracker:
     """Track downloaded files in a database."""
 
-    def __init__(self, db_connection: Optional[DatabaseConnection] = None):
+    def __init__(self, db_connection: Optional[DatabaseConnection] = None) -> None:
         """Initialize the download tracker.
 
         Args:
@@ -28,7 +28,7 @@ class DownloadTracker:
         file_path: Optional[str] = None,
         file_size: Optional[str] = None,
         bundle_total_files: Optional[int] = None,
-    ):
+    ) -> None:
         """Mark a file as downloaded.
 
         Args:
@@ -41,7 +41,7 @@ class DownloadTracker:
         """
         self._conn.execute(
             """
-            INSERT OR REPLACE INTO downloads 
+            INSERT OR REPLACE INTO downloads
             (file_url, bundle_key, filename, file_size, downloaded_at, file_path, bundle_total_files)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
@@ -50,7 +50,7 @@ class DownloadTracker:
                 bundle_key,
                 filename,
                 file_size,
-                datetime.now(),
+                datetime.now().isoformat(),
                 file_path,
                 bundle_total_files,
             ),
@@ -66,9 +66,7 @@ class DownloadTracker:
         Returns:
             True if file is in database, False otherwise
         """
-        cursor = self._conn.execute(
-            "SELECT 1 FROM downloads WHERE file_url = ?", (file_url,)
-        )
+        cursor = self._conn.execute("SELECT 1 FROM downloads WHERE file_url = ?", (file_url,))
         return cursor.fetchone() is not None
 
     def get_bundle_stats(self, bundle_key: str) -> Dict[str, Optional[int]]:
@@ -113,14 +111,10 @@ class DownloadTracker:
         Returns:
             List of bundle keys
         """
-        cursor = self._conn.execute(
-            "SELECT DISTINCT bundle_key FROM downloads ORDER BY bundle_key"
-        )
+        cursor = self._conn.execute("SELECT DISTINCT bundle_key FROM downloads ORDER BY bundle_key")
         return [row[0] for row in cursor.fetchall()]
 
-    def get_downloaded_files(
-        self, bundle_key: Optional[str] = None
-    ) -> List[Tuple[str, str, str]]:
+    def get_downloaded_files(self, bundle_key: Optional[str] = None) -> List[Tuple[str, str, str]]:
         """Get list of downloaded files.
 
         Args:
@@ -135,7 +129,5 @@ class DownloadTracker:
                 (bundle_key,),
             )
         else:
-            cursor = self._conn.execute(
-                "SELECT filename, bundle_key, downloaded_at FROM downloads"
-            )
+            cursor = self._conn.execute("SELECT filename, bundle_key, downloaded_at FROM downloads")
         return cursor.fetchall()

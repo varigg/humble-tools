@@ -9,6 +9,7 @@ from humble_tools.core.humble_wrapper import (
     parse_bundle_details,
 )
 from humble_tools.core.tracker import DownloadTracker
+from humble_tools.core.validation import validate_output_directory
 
 
 def _create_file_id(bundle_key: str, item_number: int, format_name: str) -> str:
@@ -28,7 +29,7 @@ def _create_file_id(bundle_key: str, item_number: int, format_name: str) -> str:
 class DownloadManager:
     """Manage file discovery and downloads."""
 
-    def __init__(self, tracker: Optional[DownloadTracker] = None):
+    def __init__(self, tracker: Optional[DownloadTracker] = None) -> None:
         """Initialize download manager.
 
         Args:
@@ -85,15 +86,14 @@ class DownloadManager:
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        validate_output_directory(output_dir)
 
         # Get bundle items to determine total count for this format
         try:
             bundle_data = self.get_bundle_items(bundle_key)
             # Count items that have this format
             bundle_total = sum(
-                1
-                for item in bundle_data["items"]
-                if format_name.upper() in item["formats"]
+                1 for item in bundle_data["items"] if format_name.upper() in item["formats"]
             )
         except Exception:
             # If we can't get bundle data, set total to None

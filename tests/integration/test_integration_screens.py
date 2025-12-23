@@ -18,9 +18,7 @@ class TestScreenNavigation:
     ):
         """Test complete navigation cycle: bundles → details → bundles."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
 
         async with app.run_test() as pilot:
             await pilot.pause()

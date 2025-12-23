@@ -6,7 +6,7 @@ from typing import Optional
 from humble_tools.sync.app import run_tui
 
 
-def main(output_dir: Optional[Path] = None):
+def main(output_dir: Optional[Path] = None) -> None:
     """Entry point for humble-sync command."""
     run_tui(output_dir=output_dir)
 

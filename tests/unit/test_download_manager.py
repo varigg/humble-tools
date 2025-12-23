@@ -129,10 +129,12 @@ class TestDownloadManagerDownloadItem:
             (False, False),  # failed download
         ],
     )
+    @patch("humble_tools.core.download_manager.validate_output_directory")
     @patch("humble_tools.core.download_manager.download_item_format")
     def test_download_item(
         self,
         mock_download,
+        mock_validate,
         download_manager,
         mock_tracker,
         download_success,
@@ -158,9 +160,10 @@ class TestDownloadManagerDownloadItem:
         else:
             mock_tracker.mark_downloaded.assert_not_called()
 
+    @patch("humble_tools.core.download_manager.validate_output_directory")
     @patch("humble_tools.core.download_manager.download_item_format")
     def test_download_item_creates_output_directory(
-        self, mock_download, download_manager
+        self, mock_download, mock_validate, download_manager
     ):
         """Test that output directory is created if it doesn't exist."""
         mock_download.return_value = True
@@ -182,12 +185,13 @@ class TestDownloadManagerDownloadItem:
 class TestDownloadManagerErrorHandling:
     """Tests for error handling in download operations."""
 
+    @patch("humble_tools.core.download_manager.validate_output_directory")
     @patch("humble_tools.core.download_manager.download_item_format")
     def test_download_item_propagates_exceptions(
-        self, mock_download, download_manager, mock_tracker
+        self, mock_download, mock_validate, download_manager, mock_tracker
     ):
         """Test download propagates exceptions and doesn't mark tracker on error."""
-        mock_download.side_effect = IOError("Network connection failed")
+        mock_download.side_effect = OSError("Network connection failed")
 
         # Should propagate the exception
         with pytest.raises(IOError, match="Network connection failed"):
@@ -203,9 +207,7 @@ class TestDownloadManagerErrorHandling:
 
     @patch("humble_tools.core.download_manager.get_bundle_details")
     @patch("humble_tools.core.download_manager.parse_bundle_details")
-    def test_get_bundle_items_propagates_parse_error(
-        self, mock_parse, mock_get_details
-    ):
+    def test_get_bundle_items_propagates_parse_error(self, mock_parse, mock_get_details):
         """Test get_bundle_items propagates parsing errors."""
         mock_get_details.return_value = "raw details"
         mock_parse.side_effect = ValueError("Invalid bundle format")

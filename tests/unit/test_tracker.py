@@ -32,9 +32,7 @@ class TestDownloadTracker:
 
     def test_mark_downloaded(self, tracker):
         """Test marking a file as downloaded."""
-        tracker.mark_downloaded(
-            file_url="test_url", bundle_key="bundle123", filename="test.epub"
-        )
+        tracker.mark_downloaded(file_url="test_url", bundle_key="bundle123", filename="test.epub")
 
         assert tracker.is_downloaded("test_url")
 
