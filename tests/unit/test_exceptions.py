@@ -1,7 +1,6 @@
 """Unit tests for custom exception classes."""
 
 import pytest
-
 from humble_tools.core.exceptions import (
     APIError,
     DownloadError,
@@ -39,9 +38,7 @@ def test_exception_hierarchy():
     assert isinstance(DownloadError("test"), HumbleToolsError)
     assert isinstance(APIError("test"), HumbleToolsError)
     assert isinstance(ValidationError("test"), HumbleToolsError)
-    assert isinstance(
-        InsufficientStorageError(required_mb=10, available_mb=5), HumbleToolsError
-    )
+    assert isinstance(InsufficientStorageError(required_mb=10, available_mb=5), HumbleToolsError)
 
     # Can catch specific exception types
     with pytest.raises(DownloadError):

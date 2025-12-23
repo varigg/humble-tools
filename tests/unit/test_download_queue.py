@@ -12,7 +12,6 @@ Note: Thread safety and concurrent operations are covered by test_thread_safety.
 """
 
 import pytest
-
 from humble_tools.sync.download_queue import DownloadQueue, QueueStats
 
 

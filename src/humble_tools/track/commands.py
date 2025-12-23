@@ -9,8 +9,6 @@ import click
 
 from humble_tools import __version__
 from humble_tools.core.display import (
-    display_bundle_status,
-    display_tracked_bundles_summary,
     print_error,
     print_info,
     print_success,
@@ -22,6 +20,10 @@ from humble_tools.core.humble_wrapper import (
     get_bundles,
 )
 from humble_tools.core.tracker import DownloadTracker
+from humble_tools.track.display import (
+    display_bundle_status,
+    display_tracked_bundles_summary,
+)
 
 
 def handle_humble_cli_errors(func):

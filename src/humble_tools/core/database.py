@@ -42,7 +42,8 @@ class SQLiteConnection:
 
     def _initialize_schema(self):
         """Initialize the database schema."""
-        self._conn.execute("""
+        self._conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS downloads (
                 file_url TEXT PRIMARY KEY,
                 bundle_key TEXT NOT NULL,
@@ -52,11 +53,14 @@ class SQLiteConnection:
                 file_path TEXT,
                 bundle_total_files INTEGER
             )
-        """)
-        self._conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_bundle_key 
+        """
+        )
+        self._conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_bundle_key
             ON downloads(bundle_key)
-        """)
+        """
+        )
         self._conn.commit()
 
     def execute(self, sql: str, parameters=None):

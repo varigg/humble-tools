@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Type, TypeVar
 
 from textual import work
 from textual.app import App, ComposeResult
@@ -15,6 +15,7 @@ from textual.widgets import Footer, Header, Label, ListItem, ListView, Static
 
 from humble_tools.core.download_manager import DownloadManager
 from humble_tools.core.exceptions import APIError, DownloadError, HumbleToolsError
+from humble_tools.core.format_utils import FormatUtils
 from humble_tools.core.humble_wrapper import HumbleCLIError, get_bundles
 from humble_tools.core.tracker import DownloadTracker
 from humble_tools.sync.config import AppConfig
@@ -28,6 +29,8 @@ from humble_tools.sync.constants import (
     WidgetIds,
 )
 from humble_tools.sync.download_queue import DownloadQueue
+
+T = TypeVar("T")
 
 
 class BundleItem(ListItem):
@@ -63,9 +66,7 @@ class ItemFormatRow(ListItem):
         self.formats = formats
         self.item_size = item_size
         self.format_status = format_status
-        self.format_downloading: Dict[
-            str, bool
-        ] = {}  # Track which formats are downloading
+        self.format_downloading: Dict[str, bool] = {}  # Track which formats are downloading
         self.format_queued: Dict[str, bool] = {}  # Track which formats are queued
         self._display_label: Optional[Label] = None
         # Set selected_format after super().__init__() to trigger reactive update
@@ -139,7 +140,7 @@ class ItemFormatRow(ListItem):
         formats_str = " | ".join(format_parts)
         return (
             f"{self.item_number:{ITEM_NUMBER_WIDTH}d} | "
-            f"{self.item_name[:MAX_ITEM_NAME_DISPLAY_LENGTH]:{MAX_ITEM_NAME_DISPLAY_LENGTH}s} | "
+            f"{FormatUtils.truncate_string(self.item_name, MAX_ITEM_NAME_DISPLAY_LENGTH):{MAX_ITEM_NAME_DISPLAY_LENGTH}s} | "
             f"{formats_str:{FORMAT_DISPLAY_WIDTH}s} | "
             f"{self.item_size:>{SIZE_DISPLAY_WIDTH}s}"
         )
@@ -149,9 +150,7 @@ class ItemFormatRow(ListItem):
         if self._display_label is not None:
             self._display_label.update(self._build_display_text())
 
-    def watch_selected_format(
-        self, old_value: Optional[str], new_value: Optional[str]
-    ) -> None:
+    def watch_selected_format(self, old_value: Optional[str], new_value: Optional[str]) -> None:
         """React to selected_format changes."""
         self.update_display()
 
@@ -160,9 +159,7 @@ class ItemFormatRow(ListItem):
         if not self.formats:
             return
         current_idx = (
-            self.formats.index(self.selected_format)
-            if self.selected_format in self.formats
-            else 0
+            self.formats.index(self.selected_format) if self.selected_format in self.formats else 0
         )
         next_idx = (current_idx + 1) % len(self.formats)
         self.selected_format = self.formats[next_idx]  # Triggers reactive update
@@ -185,10 +182,10 @@ class BundleListScreen(Container):
         yield Static(
             "📚 Humble Bundle Library",
             classes="header-text",
-            id=WidgetIds.SCREEN_HEADER,
+            id=WidgetIds.SCREEN_HEADER.lstrip("#"),
         )
-        yield Static("Loading bundles...", id=WidgetIds.STATUS_TEXT)
-        yield ListView(id=WidgetIds.BUNDLE_LIST)
+        yield Static("Loading bundles...", id=WidgetIds.STATUS_TEXT.lstrip("#"))
+        yield ListView(id=WidgetIds.BUNDLE_LIST.lstrip("#"))
 
     def on_mount(self) -> None:
         """Load bundles when mounted."""
@@ -203,7 +200,8 @@ class BundleListScreen(Container):
 
             # Update UI - safe in async worker on event loop
             self.bundles = bundles
-            list_view = self.query_one(f"#{WidgetIds.BUNDLE_LIST}", ListView)
+            list_view = self.query_one(WidgetIds.BUNDLE_LIST, ListView)
+
             list_view.clear()
 
             for bundle in self.bundles:
@@ -214,7 +212,8 @@ class BundleListScreen(Container):
                 list_view.index = 0
                 list_view.focus()
 
-            status = self.query_one(f"#{WidgetIds.STATUS_TEXT}", Static)
+            status = self.query_one(WidgetIds.STATUS_TEXT, Static)
+
             status.update(
                 f"Found {len(self.bundles)} bundles. Use ↑↓ to navigate, Enter to select."
             )
@@ -226,17 +225,17 @@ class BundleListScreen(Container):
                 user_message="Failed to load bundles from Humble Bundle. Please check your connection.",
             )
             logging.error(f"Failed to load bundles: {e}")
-            status = self.query_one(f"#{WidgetIds.STATUS_TEXT}", Static)
+            status = self.query_one(WidgetIds.STATUS_TEXT, Static)
+
             status.update(f"[red]{error.user_message}[/red]")
 
     def select_bundle(self) -> None:
         """Select and post message for the currently highlighted bundle."""
-        list_view = self.query_one(f"#{WidgetIds.BUNDLE_LIST}", ListView)
+        list_view = self.query_one(WidgetIds.BUNDLE_LIST, ListView)
+
         if list_view.index is not None and list_view.index < len(self.bundles):
             selected_bundle = self.bundles[list_view.index]
-            self.post_message(
-                BundleSelected(selected_bundle["key"], selected_bundle["name"])
-            )
+            self.post_message(BundleSelected(selected_bundle["key"], selected_bundle["name"]))
 
     def action_select_bundle(self) -> None:
         """Handle bundle selection action."""
@@ -283,9 +282,9 @@ class BundleDetailsScreen(Container):
     def _safe_query_widget(
         self,
         widget_id: str,
-        widget_type: type,
-        default_action: Optional[callable] = None,
-    ) -> Optional[any]:
+        widget_type: Type[T],
+        default_action: Optional[Callable[[], None]] = None,
+    ) -> Optional[T]:
         """Safely query for a widget, handling exceptions.
 
         Args:
@@ -326,10 +325,7 @@ class BundleDetailsScreen(Container):
         """
         stats = self._queue.get_stats()
         if stats.queued > 0:
-            return (
-                f"Active: {stats.active}/{stats.max_concurrent} | "
-                f"Queued: {stats.queued}"
-            )
+            return f"Active: {stats.active}/{stats.max_concurrent} | " f"Queued: {stats.queued}"
         else:
             return f"Active Downloads: {stats.active}/{stats.max_concurrent}"
 
@@ -349,13 +345,12 @@ class BundleDetailsScreen(Container):
         Returns:
             Help text string
         """
-        return (
-            "Use ↑↓ to navigate, ←→ to change format, Enter to download, ESC to go back"
-        )
+        return "Use ↑↓ to navigate, ←→ to change format, Enter to download, ESC to go back"
 
     def update_download_counter(self) -> None:
         """Update status bar with active download count."""
-        status = self._safe_query_widget(f"#{WidgetIds.DETAILS_STATUS}", Static)
+        status = self._safe_query_widget(WidgetIds.DETAILS_STATUS, Static)
+
         if status is None:
             return
 
@@ -371,12 +366,11 @@ class BundleDetailsScreen(Container):
     def show_notification(self, message: str) -> None:
         """Show a notification that auto-clears after configured duration."""
         try:
-            notif = self.query_one(f"#{WidgetIds.NOTIFICATION_AREA}", Static)
+            notif = self.query_one(WidgetIds.NOTIFICATION_AREA, Static)
+
             notif.update(message)
             # Schedule clearing after duration using set_timer
-            self.set_timer(
-                self.config.notification_duration, lambda: self.clear_notification()
-            )
+            self.set_timer(self.config.notification_duration, lambda: self.clear_notification())
         except NoMatches:
             # Notification widget doesn't exist (screen not mounted)
             return
@@ -387,7 +381,8 @@ class BundleDetailsScreen(Container):
     def clear_notification(self) -> None:
         """Clear the notification area."""
         try:
-            notif = self.query_one(f"#{WidgetIds.NOTIFICATION_AREA}", Static)
+            notif = self.query_one(WidgetIds.NOTIFICATION_AREA, Static)
+
             notif.update("")
         except NoMatches:
             # Notification widget doesn't exist (screen not mounted)
@@ -406,17 +401,15 @@ class BundleDetailsScreen(Container):
                 # Items list doesn't exist (view changed)
                 return
             except Exception:
-                logging.exception(
-                    f"Unexpected error removing item: {item_row.item_name}"
-                )
+                logging.exception(f"Unexpected error removing item: {item_row.item_name}")
                 return
 
     def compose(self) -> ComposeResult:
-        yield Static("", classes="header-text", id=WidgetIds.BUNDLE_HEADER)
-        yield Static("", id=WidgetIds.BUNDLE_METADATA)
-        yield Static("", id=WidgetIds.NOTIFICATION_AREA, classes="notification")
-        yield Static("Loading...", id=WidgetIds.DETAILS_STATUS)
-        yield ListView(id=WidgetIds.ITEMS_LIST)
+        yield Static("", classes="header-text", id=WidgetIds.BUNDLE_HEADER.lstrip("#"))
+        yield Static("", id=WidgetIds.BUNDLE_METADATA.lstrip("#"))
+        yield Static("", id=WidgetIds.NOTIFICATION_AREA.lstrip("#"), classes="notification")
+        yield Static("Loading...", id=WidgetIds.DETAILS_STATUS.lstrip("#"))
+        yield ListView(id=WidgetIds.ITEMS_LIST.lstrip("#"))
 
     def load_bundle(self, bundle_key: str, bundle_name: str) -> None:
         """Load bundle details."""
@@ -424,11 +417,12 @@ class BundleDetailsScreen(Container):
         self.bundle_name = bundle_name
 
         # Update header
-        header = self.query_one(f"#{WidgetIds.BUNDLE_HEADER}", Static)
+        header = self.query_one(WidgetIds.BUNDLE_HEADER, Static)
+
         header.update(f"📦 {bundle_name}")
 
         # Show loading status
-        status = self.query_one(f"#{WidgetIds.DETAILS_STATUS}", Static)
+        status = self.query_one(WidgetIds.DETAILS_STATUS, Static)
         status.update("Loading bundle details...")
 
         # Load details in background
@@ -445,7 +439,8 @@ class BundleDetailsScreen(Container):
             self.bundle_data = bundle_data
 
             # Update metadata
-            metadata = self.query_one(f"#{WidgetIds.BUNDLE_METADATA}", Static)
+            metadata = self.query_one(WidgetIds.BUNDLE_METADATA, Static)
+
             meta_text = (
                 f"Purchased: {self.bundle_data['purchased']} | "
                 f"Amount: {self.bundle_data['amount']} | "
@@ -454,14 +449,15 @@ class BundleDetailsScreen(Container):
             metadata.update(meta_text)
 
             # Update items list
-            list_view = self.query_one(f"#{WidgetIds.ITEMS_LIST}", ListView)
+            list_view = self.query_one(WidgetIds.ITEMS_LIST, ListView)
             list_view.clear()
 
             if not self.bundle_data["items"]:
                 # Check if there are keys to display
                 if self.bundle_data.get("keys"):
                     # Show keys table
-                    status = self.query_one(f"#{WidgetIds.DETAILS_STATUS}", Static)
+                    status = self.query_one(WidgetIds.DETAILS_STATUS, Static)
+
                     status.update(
                         f"{len(self.bundle_data['keys'])} game keys in this bundle. "
                         "Visit https://www.humblebundle.com/home/keys to redeem. Press ESC to go back."
@@ -474,13 +470,9 @@ class BundleDetailsScreen(Container):
                     # Add keys
                     for key in self.bundle_data["keys"]:
                         redeemed_str = (
-                            f"{StatusSymbols.DOWNLOADED} Yes"
-                            if key["redeemed"]
-                            else "No"
+                            f"{StatusSymbols.DOWNLOADED} Yes" if key["redeemed"] else "No"
                         )
-                        redeemed_color = (
-                            Colors.SUCCESS if key["redeemed"] else Colors.WARNING
-                        )
+                        redeemed_color = Colors.SUCCESS if key["redeemed"] else Colors.WARNING
                         key_text = f"{key['number']:3d} | {key['name'][:60]:60s} | [{redeemed_color}]{redeemed_str:>10s}[/{redeemed_color}]"
                         list_view.append(ListItem(Label(key_text)))
 
@@ -489,10 +481,11 @@ class BundleDetailsScreen(Container):
                     list_view.focus()
                 else:
                     # No items and no keys
-                    status = self.query_one(f"#{WidgetIds.DETAILS_STATUS}", Static)
+                    status = self.query_one(WidgetIds.DETAILS_STATUS, Static)
                     status.update(
                         f"[{Colors.WARNING}]No items found in this bundle. Press ESC to go back.[/{Colors.WARNING}]"
                     )
+
                     # Set focus to the ListView so ESC key works (ListView can be focused even when empty)
                     list_view.focus()
                 return
@@ -527,7 +520,8 @@ class BundleDetailsScreen(Container):
                 user_message="Failed to load bundle details from Humble Bundle. Please try again.",
             )
             logging.error(f"Failed to load bundle details: {e}")
-            status = self.query_one("#details-status", Static)
+            status = self.query_one(WidgetIds.DETAILS_STATUS, Static)
+
             status.update(f"[red]{error.user_message}[/red]")
 
     def action_go_back(self) -> None:
@@ -536,7 +530,8 @@ class BundleDetailsScreen(Container):
 
     def action_cycle_format(self) -> None:
         """Cycle through formats for selected item."""
-        list_view = self.query_one("#items-list", ListView)
+        list_view = self.query_one(WidgetIds.ITEMS_LIST, ListView)
+
         if list_view.index is not None and list_view.index > 0:  # Skip header row
             selected = list_view.children[list_view.index]
             if isinstance(selected, ItemFormatRow):
@@ -544,7 +539,8 @@ class BundleDetailsScreen(Container):
 
     def download_selected_item(self) -> None:
         """Download the currently selected item format."""
-        list_view = self.query_one("#items-list", ListView)
+        list_view = self.query_one(WidgetIds.ITEMS_LIST, ListView)
+
         if list_view.index is None or list_view.index == 0:  # Skip header row
             return
 
@@ -563,7 +559,8 @@ class BundleDetailsScreen(Container):
         """Handle ListView selection (Enter key)."""
         # Check if this is from the items list
         try:
-            list_view = self.query_one(f"#{WidgetIds.ITEMS_LIST}", ListView)
+            list_view = self.query_one(WidgetIds.ITEMS_LIST, ListView)
+
             if event.list_view == list_view:
                 self.download_selected_item()
         except NoMatches:
@@ -573,9 +570,7 @@ class BundleDetailsScreen(Container):
             logging.exception("Unexpected error handling list view selection")
             return
 
-    def _handle_download_queued(
-        self, item_row: ItemFormatRow, selected_format: str
-    ) -> None:
+    def _handle_download_queued(self, item_row: ItemFormatRow, selected_format: str) -> None:
         """Handle download entering queued state.
 
         Updates queue state and UI to show item is queued for download.
@@ -590,9 +585,7 @@ class BundleDetailsScreen(Container):
         item_row.update_display()
         self.update_download_counter()
 
-    def _handle_download_started(
-        self, item_row: ItemFormatRow, selected_format: str
-    ) -> None:
+    def _handle_download_started(self, item_row: ItemFormatRow, selected_format: str) -> None:
         """Handle download moving from queued to active state.
 
         Updates queue state and UI to show download is in progress.
@@ -608,9 +601,7 @@ class BundleDetailsScreen(Container):
         item_row.update_display()
         self.update_download_counter()
 
-    def _handle_download_success(
-        self, item_row: ItemFormatRow, selected_format: str
-    ) -> None:
+    def _handle_download_success(self, item_row: ItemFormatRow, selected_format: str) -> None:
         """Handle successful download completion.
 
         Updates UI to show download completed, shows notification,
@@ -629,13 +620,9 @@ class BundleDetailsScreen(Container):
         )
 
         # Schedule item removal if all formats downloaded
-        self.set_timer(
-            self.config.item_removal_delay, lambda: self.maybe_remove_item(item_row)
-        )
+        self.set_timer(self.config.item_removal_delay, lambda: self.maybe_remove_item(item_row))
 
-    def _handle_download_failure(
-        self, item_row: ItemFormatRow, selected_format: str
-    ) -> None:
+    def _handle_download_failure(self, item_row: ItemFormatRow, selected_format: str) -> None:
         """Handle download failure (download attempt returned False).
 
         Clears downloading state and shows failure notification.
@@ -743,7 +730,7 @@ class BundleDetailsScreen(Container):
                     message=str(e),
                     user_message=f"Download failed for {item_row.item_name}. Please try again.",
                 ) from e
-            except (IOError, OSError) as e:
+            except OSError as e:
                 # Wrap file I/O errors in DownloadError
                 raise DownloadError(
                     message=str(e),
@@ -796,7 +783,7 @@ class HumbleBundleTUI(App):
     Screen {
         background: $surface;
     }
-    
+
     .header-text {
         background: $primary;
         color: $text;
@@ -804,28 +791,28 @@ class HumbleBundleTUI(App):
         text-align: center;
         text-style: bold;
     }
-    
+
     #status-text, #details-status, #bundle-metadata {
         padding: 0 1;
         color: $text-muted;
     }
-    
+
     .notification {
         padding: 0 1;
         color: $text;
         height: 1;
         border: solid $accent;
     }
-    
+
     ListView {
         height: 1fr;
         margin: 1 2;
     }
-    
+
     ListItem {
         padding: 0 1;
     }
-    
+
     ListItem:hover {
         background: $accent;
     }
@@ -850,9 +837,7 @@ class HumbleBundleTUI(App):
         yield Header()
         # Mount both screens - start with bundle list visible
         self.bundle_list_screen = BundleListScreen(self.download_manager)
-        self.bundle_details_screen = BundleDetailsScreen(
-            self.download_manager, self.config
-        )
+        self.bundle_details_screen = BundleDetailsScreen(self.download_manager, self.config)
         yield self.bundle_list_screen
         yield self.bundle_details_screen
         yield Footer()
@@ -870,9 +855,7 @@ class HumbleBundleTUI(App):
             self.bundle_list_screen.display = False
         if self.bundle_details_screen:
             self.bundle_details_screen.display = True
-            self.bundle_details_screen.load_bundle(
-                message.bundle_key, message.bundle_name
-            )
+            self.bundle_details_screen.load_bundle(message.bundle_key, message.bundle_name)
 
         self.current_screen = "details"
 
@@ -884,9 +867,8 @@ class HumbleBundleTUI(App):
         if self.bundle_list_screen:
             self.bundle_list_screen.display = True
             # Restore focus to the bundle list
-            list_view = self.bundle_list_screen.query_one(
-                f"#{WidgetIds.BUNDLE_LIST}", ListView
-            )
+            list_view = self.bundle_list_screen.query_one(WidgetIds.BUNDLE_LIST, ListView)
+
             list_view.focus()
 
         self.current_screen = "list"

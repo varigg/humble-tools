@@ -19,16 +19,16 @@ class WidgetIds:
     """Widget selector IDs used throughout the application."""
 
     # Bundle List Screen
-    BUNDLE_LIST = "bundle-list"
-    STATUS_TEXT = "status-text"
-    SCREEN_HEADER = "screen-header"
+    BUNDLE_LIST = "#bundle-list"
+    STATUS_TEXT = "#status-text"
+    SCREEN_HEADER = "#screen-header"
 
     # Bundle Details Screen
-    BUNDLE_HEADER = "bundle-header"
-    BUNDLE_METADATA = "bundle-metadata"
-    ITEMS_LIST = "items-list"
-    DETAILS_STATUS = "details-status"
-    NOTIFICATION_AREA = "notification-area"
+    BUNDLE_HEADER = "#bundle-header"
+    BUNDLE_METADATA = "#bundle-metadata"
+    ITEMS_LIST = "#items-list"
+    DETAILS_STATUS = "#details-status"
+    NOTIFICATION_AREA = "#notification-area"
 
 
 # Status Symbols

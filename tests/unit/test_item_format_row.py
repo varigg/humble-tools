@@ -14,7 +14,6 @@ Dependencies: Uses ItemFormatRow widget, Colors and StatusSymbols constants
 """
 
 import pytest
-
 from humble_tools.sync.app import ItemFormatRow
 from humble_tools.sync.constants import Colors, StatusSymbols
 
@@ -244,15 +243,11 @@ class TestItemFormatRowState:
             ("format_queued", {}, "EPUB", True),  # Set when queued
         ],
     )
-    def test_format_state_tracking(
-        self, state_attr, initial_state, test_format, set_value
-    ):
+    def test_format_state_tracking(self, state_attr, initial_state, test_format, set_value):
         """Test format state tracking for status, downloading, and queued."""
         # Determine format_status for initialization
         format_status = (
-            initial_state
-            if state_attr == "format_status"
-            else {"EPUB": False, "PDF": False}
+            initial_state if state_attr == "format_status" else {"EPUB": False, "PDF": False}
         )
 
         row = ItemFormatRow(
@@ -416,9 +411,7 @@ class TestItemFormatRowHelperMethods:
         )
 
         # Format EPUB (not selected, but downloaded = green)
-        result = row._format_single_item(
-            "EPUB", StatusSymbols.DOWNLOADED, Colors.SUCCESS
-        )
+        result = row._format_single_item("EPUB", StatusSymbols.DOWNLOADED, Colors.SUCCESS)
 
         # Should have color markup but not selected markup
         assert Colors.SUCCESS in result
@@ -456,9 +449,7 @@ class TestItemFormatRowHelperMethods:
         row.format_downloading["EPUB"] = True
 
         # Format EPUB (selected, downloading = yellow)
-        result = row._format_single_item(
-            "EPUB", StatusSymbols.DOWNLOADING, Colors.WARNING
-        )
+        result = row._format_single_item("EPUB", StatusSymbols.DOWNLOADING, Colors.WARNING)
 
         # Should have both selected and status color
         assert Colors.SELECTED in result

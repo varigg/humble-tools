@@ -52,12 +52,12 @@ Keys in this bundle:
 
   # | Key Name                                                  | Redeemed
 ----+-----------------------------------------------------------+----------
-  1 | Train Simulator Classic                                   |   Yes    
-  2 | Train Simulator: Route Addon                              |   No     
-  3 | Train Simulator: Loco Pack                                |   Yes    
-  4 | Train Simulator: Special Edition                          |   No     
-  5 | Train Simulator: DLC Pack 1                               |   No     
-  6 | Train Simulator: DLC Pack 2                               |   Yes    
+  1 | Train Simulator Classic                                   |   Yes
+  2 | Train Simulator: Route Addon                              |   No
+  3 | Train Simulator: Loco Pack                                |   Yes
+  4 | Train Simulator: Special Edition                          |   No
+  5 | Train Simulator: DLC Pack 1                               |   No
+  6 | Train Simulator: DLC Pack 2                               |   Yes
 
 Visit https://www.humblebundle.com/home/keys to view all your keys
 """
@@ -102,8 +102,8 @@ Keys in this bundle:
 
   # | Key Name                                                  | Redeemed
 ----+-----------------------------------------------------------+----------
-  1 | Base Game (Steam)                                         |   Yes    
-  2 | DLC Pack (Steam)                                          |   No     
+  1 | Base Game (Steam)                                         |   Yes
+  2 | DLC Pack (Steam)                                          |   No
 
 Visit https://www.humblebundle.com/home/keys to view all your keys
 """
@@ -185,13 +185,8 @@ Total size      : 100 MiB
 """
         result = parse_bundle_details(details_output)
 
-        assert (
-            result["items"][0]["name"] == "Book: The Sequel (Part 2) - Director's Cut"
-        )
-        assert (
-            result["items"][1]["name"]
-            == "C++ & Python: A Developer's Guide [2024 Edition]"
-        )
+        assert result["items"][0]["name"] == "Book: The Sequel (Part 2) - Director's Cut"
+        assert result["items"][1]["name"] == "C++ & Python: A Developer's Guide [2024 Edition]"
 
     def test_parse_bundle_with_various_size_units(self):
         """Test parsing with different size units (B, KB, MB, GB)."""
@@ -242,14 +237,14 @@ Total size      : 100 MiB
 
     def test_parse_bundle_with_whitespace_variations(self):
         """Test parsing with various whitespace patterns."""
-        details_output = """   Whitespace Bundle   
-Purchased       :    2024-01-01   
+        details_output = """   Whitespace Bundle
+Purchased       :    2024-01-01
 Amount spent    :$10.00
-Total size      : 100 MiB   
+Total size      : 100 MiB
 
   # | Sub-item                                                  | Format      | Total Size
 ----+-----------------------------------------------------------+-------------+------------
-  1 | Book Name                                                 | EPUB        |   50 MiB  
+  1 | Book Name                                                 | EPUB        |   50 MiB
 """
         result = parse_bundle_details(details_output)
 
@@ -294,8 +289,8 @@ Keys in this bundle:
 
   # | Key Name                                                  | Redeemed
 ----+-----------------------------------------------------------+----------
-  2 | Key Two                                                   |   No     
-  1 | Key One                                                   |   Yes    
+  2 | Key Two                                                   |   No
+  1 | Key One                                                   |   Yes
 """
         result = parse_bundle_details(details_output)
 
@@ -361,13 +356,8 @@ Total size      : 100 MiB
 """
         result = parse_bundle_details(details_output)
 
-        assert (
-            "☕" in result["items"][0]["name"] or "Café" in result["items"][0]["name"]
-        )
-        assert (
-            "日本語" in result["items"][1]["name"]
-            or "Japanese" in result["items"][1]["name"]
-        )
+        assert "☕" in result["items"][0]["name"] or "Café" in result["items"][0]["name"]
+        assert "日本語" in result["items"][1]["name"] or "Japanese" in result["items"][1]["name"]
 
 
 class TestParseBundleDetailsRealWorldExamples:
@@ -406,10 +396,10 @@ Keys in this bundle:
 
   # | Key Name                                                  | Redeemed
 ----+-----------------------------------------------------------+----------
-  1 | Cyberpunk Adventure Game (Steam)                          |   Yes    
-  2 | Indie Puzzle Collection (Steam)                           |   No     
-  3 | RPG Starter Pack (Steam)                                  |   No     
-  4 | Action Game Bundle DLC (Steam)                            |   Yes    
+  1 | Cyberpunk Adventure Game (Steam)                          |   Yes
+  2 | Indie Puzzle Collection (Steam)                           |   No
+  3 | RPG Starter Pack (Steam)                                  |   No
+  4 | Action Game Bundle DLC (Steam)                            |   Yes
 
 Visit https://www.humblebundle.com/home/keys to view all your keys
 """

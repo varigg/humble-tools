@@ -3,7 +3,6 @@
 from unittest.mock import Mock
 
 import pytest
-
 from humble_tools.sync.app import HumbleBundleTUI
 
 
@@ -18,9 +17,7 @@ class TestDownloadWorkflows:
     ):
         """Test downloading after changing format selection."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
         app.download_manager.download_item = Mock(return_value=True)
 
         async with app.run_test() as pilot:
@@ -54,9 +51,7 @@ class TestDownloadWorkflows:
     ):
         """Test failed download (returns False) is handled without crash."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
         app.download_manager.download_item = Mock(return_value=False)  # Fail
 
         async with app.run_test() as pilot:
@@ -83,12 +78,8 @@ class TestDownloadWorkflows:
     ):
         """Test download exception is caught and doesn't crash app."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
-        app.download_manager.download_item = Mock(
-            side_effect=RuntimeError("Network error")
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
+        app.download_manager.download_item = Mock(side_effect=RuntimeError("Network error"))
 
         async with app.run_test() as pilot:
             await pilot.pause()
@@ -111,9 +102,7 @@ class TestDownloadWorkflows:
     ):
         """Test failed download can be retried successfully."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
 
         # First call fails, second succeeds
         app.download_manager.download_item = Mock(side_effect=[False, True])
@@ -144,9 +133,7 @@ class TestDownloadWorkflows:
     ):
         """Test downloads continue after navigating away from details."""
         app = HumbleBundleTUI()
-        app.download_manager.get_bundle_items = Mock(
-            return_value=mock_bundle_with_items
-        )
+        app.download_manager.get_bundle_items = Mock(return_value=mock_bundle_with_items)
         app.download_manager.download_item = Mock(return_value=True)
 
         async with app.run_test() as pilot:

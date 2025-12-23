@@ -3,7 +3,6 @@
 from unittest.mock import Mock, patch
 
 import pytest
-
 from humble_tools.core.download_manager import DownloadManager
 
 
