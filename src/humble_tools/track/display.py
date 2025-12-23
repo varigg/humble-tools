@@ -12,7 +12,7 @@ from humble_tools.core.format_utils import FormatUtils
 console = Console()
 
 
-def display_bundles(bundles: List[Dict], with_stats: bool = False):
+def display_bundles(bundles: List[Dict], with_stats: bool = False) -> None:
     """Display bundles in a formatted table.
 
     Args:
@@ -50,7 +50,7 @@ def display_bundles(bundles: List[Dict], with_stats: bool = False):
     console.print(table)
 
 
-def display_tracked_bundles_summary(bundles: List[Dict]):
+def display_tracked_bundles_summary(bundles: List[Dict]) -> None:
     """Display summary of tracked bundles with download progress.
 
     Args:
@@ -108,7 +108,7 @@ def display_tracked_bundles_summary(bundles: List[Dict]):
     console.print(table)
 
 
-def display_bundle_status(bundle_name: str, stats: Dict):
+def display_bundle_status(bundle_name: str, stats: Dict) -> None:
     """Display download status for a bundle.
 
     Args:
@@ -168,7 +168,7 @@ Progress: [cyan]{"█" * int(percentage / 2)}{"░" * (50 - int(percentage / 2))
     console.print(Panel(panel_content.strip(), title="Bundle Status", border_style="blue"))
 
 
-def display_overall_stats(stats: Dict):
+def display_overall_stats(stats: Dict) -> None:
     """Display overall download statistics.
 
     Args:

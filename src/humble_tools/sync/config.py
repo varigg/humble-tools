@@ -27,7 +27,7 @@ class AppConfig:
     item_removal_delay: int = ITEM_REMOVAL_DELAY_SECONDS
     output_dir: Path = DEFAULT_OUTPUT_DIR
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate configuration values."""
         if self.max_concurrent_downloads < 1:
             raise ValueError("max_concurrent_downloads must be at least 1")

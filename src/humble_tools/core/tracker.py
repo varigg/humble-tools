@@ -9,7 +9,7 @@ from humble_tools.core.database import DatabaseConnection, create_default_connec
 class DownloadTracker:
     """Track downloaded files in a database."""
 
-    def __init__(self, db_connection: Optional[DatabaseConnection] = None):
+    def __init__(self, db_connection: Optional[DatabaseConnection] = None) -> None:
         """Initialize the download tracker.
 
         Args:
@@ -28,7 +28,7 @@ class DownloadTracker:
         file_path: Optional[str] = None,
         file_size: Optional[str] = None,
         bundle_total_files: Optional[int] = None,
-    ):
+    ) -> None:
         """Mark a file as downloaded.
 
         Args:

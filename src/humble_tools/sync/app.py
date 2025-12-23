@@ -36,7 +36,7 @@ T = TypeVar("T")
 class BundleItem(ListItem):
     """A list item representing a bundle."""
 
-    def __init__(self, bundle_key: str, bundle_name: str):
+    def __init__(self, bundle_key: str, bundle_name: str) -> None:
         super().__init__()
         self.bundle_key = bundle_key
         self.bundle_name = bundle_name
@@ -59,7 +59,7 @@ class ItemFormatRow(ListItem):
         item_size: str,
         format_status: Dict[str, bool],
         selected_format: Optional[str] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.item_number = item_number
         self.item_name = item_name
@@ -173,7 +173,7 @@ class BundleListScreen(Container):
         Binding("q", "quit_app", "Quit", show=True),
     ]
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self, download_manager: DownloadManager) -> None:
         super().__init__()
         self.download_manager = download_manager
         self.bundles = []
@@ -253,7 +253,7 @@ class BundleListScreen(Container):
 class BundleSelected(Message):
     """Message sent when a bundle is selected."""
 
-    def __init__(self, bundle_key: str, bundle_name: str):
+    def __init__(self, bundle_key: str, bundle_name: str) -> None:
         super().__init__()
         self.bundle_key = bundle_key
         self.bundle_name = bundle_name
@@ -270,7 +270,7 @@ class BundleDetailsScreen(Container):
         Binding("q", "quit_app", "Quit", show=True),
     ]
 
-    def __init__(self, download_manager: DownloadManager, config: AppConfig):
+    def __init__(self, download_manager: DownloadManager, config: AppConfig) -> None:
         super().__init__()
         self.download_manager = download_manager
         self.config = config
@@ -822,7 +822,7 @@ class HumbleBundleTUI(App):
         Binding("q", "quit", "Quit", show=True),
     ]
 
-    def __init__(self, config: Optional[AppConfig] = None):
+    def __init__(self, config: Optional[AppConfig] = None) -> None:
         super().__init__()
         self.config = config or AppConfig()
         self.tracker = DownloadTracker()
@@ -874,7 +874,7 @@ class HumbleBundleTUI(App):
         self.current_screen = "list"
 
 
-def run_tui(output_dir: Optional[Path] = None, config: Optional[AppConfig] = None):
+def run_tui(output_dir: Optional[Path] = None, config: Optional[AppConfig] = None) -> None:
     """Run the TUI application.
 
     Args:

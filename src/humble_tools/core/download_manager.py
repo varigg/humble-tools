@@ -29,7 +29,7 @@ def _create_file_id(bundle_key: str, item_number: int, format_name: str) -> str:
 class DownloadManager:
     """Manage file discovery and downloads."""
 
-    def __init__(self, tracker: Optional[DownloadTracker] = None):
+    def __init__(self, tracker: Optional[DownloadTracker] = None) -> None:
         """Initialize download manager.
 
         Args:

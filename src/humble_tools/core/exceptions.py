@@ -28,7 +28,7 @@ class HumbleToolsError(Exception):
         user_message: User-friendly message for UI display
     """
 
-    def __init__(self, message: str, user_message: str | None = None):
+    def __init__(self, message: str, user_message: str | None = None) -> None:
         """Initialize exception with messages.
 
         Args:
@@ -47,7 +47,7 @@ class DownloadError(HumbleToolsError):
     file system errors, and other download-related problems.
     """
 
-    def __init__(self, message: str, user_message: str | None = None):
+    def __init__(self, message: str, user_message: str | None = None) -> None:
         """Initialize download error.
 
         Args:
@@ -67,7 +67,7 @@ class InsufficientStorageError(DownloadError):
     to free up disk space before continuing.
     """
 
-    def __init__(self, required_mb: float, available_mb: float):
+    def __init__(self, required_mb: float, available_mb: float) -> None:
         """Initialize insufficient storage error.
 
         Args:
@@ -91,7 +91,7 @@ class APIError(HumbleToolsError):
     providing user-friendly messages for common failure scenarios.
     """
 
-    def __init__(self, message: str, user_message: str | None = None):
+    def __init__(self, message: str, user_message: str | None = None) -> None:
         """Initialize API error.
 
         Args:
@@ -111,7 +111,7 @@ class ValidationError(HumbleToolsError):
     before performing operations.
     """
 
-    def __init__(self, message: str, user_message: str | None = None):
+    def __init__(self, message: str, user_message: str | None = None) -> None:
         """Initialize validation error.
 
         Args:

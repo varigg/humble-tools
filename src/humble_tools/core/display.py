@@ -6,27 +6,27 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 console = Console()
 
 
-def print_success(message: str):
+def print_success(message: str) -> None:
     """Print a success message."""
     console.print(f"[green]✓[/green] {message}")
 
 
-def print_error(message: str):
+def print_error(message: str) -> None:
     """Print an error message."""
     console.print(f"[red]✗[/red] {message}", style="bold red")
 
 
-def print_warning(message: str):
+def print_warning(message: str) -> None:
     """Print a warning message."""
     console.print(f"[yellow]⚠[/yellow] {message}", style="yellow")
 
 
-def print_info(message: str):
+def print_info(message: str) -> None:
     """Print an info message."""
     console.print(f"[blue]ℹ[/blue] {message}")
 
 
-def create_progress_bar(description: str = "Downloading..."):
+def create_progress_bar(description: str = "Downloading...") -> Progress:
     """Create a progress bar for downloads.
 
     Args:

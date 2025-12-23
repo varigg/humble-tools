@@ -2,7 +2,8 @@
 
 import sqlite3
 from pathlib import Path
-from typing import Protocol
+from types import TracebackType
+from typing import Any, Optional, Protocol, Type
 
 # Default database paths
 DEFAULT_DATA_DIR = Path.home() / ".humblebundle"
@@ -12,15 +13,15 @@ DEFAULT_DATABASE_PATH = DEFAULT_DATA_DIR / "downloads.db"
 class DatabaseConnection(Protocol):
     """Protocol for database connection interface."""
 
-    def execute(self, sql: str, parameters=None):
+    def execute(self, sql: str, parameters: Optional[Any] = None) -> Any:  # noqa: ANN401
         """Execute SQL statement."""
         ...
 
-    def commit(self):
+    def commit(self) -> None:
         """Commit transaction."""
         ...
 
-    def cursor(self):
+    def cursor(self) -> Any:  # noqa: ANN401
         """Get cursor for queries."""
         ...
 
@@ -28,7 +29,7 @@ class DatabaseConnection(Protocol):
 class SQLiteConnection:
     """SQLite database connection wrapper with schema management."""
 
-    def __init__(self, db_path: str | Path = ":memory:"):
+    def __init__(self, db_path: str | Path = ":memory:") -> None:
         """Initialize SQLite connection.
 
         Args:
@@ -40,7 +41,7 @@ class SQLiteConnection:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._initialize_schema()
 
-    def _initialize_schema(self):
+    def _initialize_schema(self) -> None:
         """Initialize the database schema."""
         self._conn.execute(
             """
@@ -63,28 +64,33 @@ class SQLiteConnection:
         )
         self._conn.commit()
 
-    def execute(self, sql: str, parameters=None):
+    def execute(self, sql: str, parameters: Optional[Any] = None) -> Any:  # noqa: ANN401
         """Execute SQL statement."""
         if parameters:
             return self._conn.execute(sql, parameters)
         return self._conn.execute(sql)
 
-    def commit(self):
+    def commit(self) -> None:
         """Commit transaction."""
         self._conn.commit()
 
-    def cursor(self):
+    def cursor(self) -> sqlite3.Cursor:
         """Get cursor for queries."""
         return self._conn.cursor()
 
-    def close(self):
+    def close(self) -> None:
         """Close connection."""
         self._conn.close()
 
-    def __enter__(self):
+    def __enter__(self) -> "SQLiteConnection":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         if exc_type is None:
             self.commit()
         self.close()
