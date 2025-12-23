@@ -50,7 +50,9 @@ def check_disk_space(path: Path, required_bytes: int) -> None:
     if available_bytes < required_bytes:
         required_mb = required_bytes / (1024 * 1024)
         available_mb = available_bytes / (1024 * 1024)
-        raise InsufficientStorageError(required_mb=required_mb, available_mb=available_mb)
+        raise InsufficientStorageError(
+            required_mb=required_mb, available_mb=available_mb
+        )
 
 
 def validate_output_directory(path: Path) -> None:

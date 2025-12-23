@@ -13,15 +13,16 @@ FORMAT_DISPLAY_WIDTH = 30
 ITEM_NUMBER_WIDTH = 3
 SIZE_DISPLAY_WIDTH = 10
 
+
 # Widget IDs
 class WidgetIds:
     """Widget selector IDs used throughout the application."""
-    
+
     # Bundle List Screen
     BUNDLE_LIST = "bundle-list"
     STATUS_TEXT = "status-text"
     SCREEN_HEADER = "screen-header"
-    
+
     # Bundle Details Screen
     BUNDLE_HEADER = "bundle-header"
     BUNDLE_METADATA = "bundle-metadata"
@@ -33,7 +34,7 @@ class WidgetIds:
 # Status Symbols
 class StatusSymbols:
     """Unicode symbols for item status indicators."""
-    
+
     DOWNLOADED = "✓"
     DOWNLOADING = "⏳"
     QUEUED = "🕒"
@@ -44,7 +45,7 @@ class StatusSymbols:
 # Color Names (Textual Rich markup)
 class Colors:
     """Color names for Textual Rich markup."""
-    
+
     SUCCESS = "green"
     ERROR = "red"
     WARNING = "yellow"
